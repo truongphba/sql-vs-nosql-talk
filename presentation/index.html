@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SQL vs NoSQL — Pixiland Tech Talk</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;700;800&family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reset.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <!-- 1 · TITLE -->
+    <section data-auto-animate>
+      <div class="slide-body center">
+        <div class="eyebrow">PIXILAND <span class="dim">·</span> TECH TALK</div>
+        <h1>SQL <span style="color:var(--muted)">vs</span> NoSQL</h1>
+        <p class="big" style="max-width:24ch">Chọn storage theo <strong>workload</strong>, <strong>consistency</strong> và <strong>scale</strong></p>
+        <div class="chip-row" style="justify-content:center; margin-top:1.4em">
+          <span class="chip chip--pg">PostgreSQL</span>
+          <span class="chip chip--mongo">MongoDB</span>
+          <span class="chip chip--redis">Redis</span>
+          <span class="chip chip--duck">DuckDB</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 · MỤC TIÊU -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">OBJECTIVES</div>
+        <h2>Sau buổi này, bạn sẽ thấy rõ</h2>
+        <ul class="qlist">
+          <li><span class="n">A</span><span>Không có DB nào thắng <strong>mọi</strong> bài toán</span></li>
+          <li><span class="n">B</span><span>Một hệ thống thật có nhiều lớp dữ liệu: truth · config · coordination · read model · event log · analytics</span></li>
+          <li><span class="n">C</span><span>Chọn DB theo <strong>workload · consistency · access pattern · scale bottleneck</strong> — không theo trend</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 3 · PHASE 01 DIVIDER -->
+    <section>
+      <div class="slide-body center">
+        <div class="phase-num">01</div>
+        <div class="eyebrow">HOOK <span class="dim">· 5 MIN</span></div>
+        <h1 style="margin-top:0.2em">Cùng scale —<br>chọn ngược nhau</h1>
+      </div>
+    </section>
+
+    <!-- 4 · CÂU HỎI MỒI -->
+    <section>
+      <div class="slide-body center">
+        <div class="eyebrow">WARM-UP QUESTION</div>
+        <div class="q-hero">
+          SQL hay NoSQL — cái nào <em>scale</em> tốt hơn?
+          <span class="strikebar fragment"></span>
+        </div>
+        <div class="verdict fragment"><span class="mk">&gt;&gt;</span>Câu hỏi sai từ đầu</div>
+      </div>
+    </section>
+
+    <!-- 5 · NGHỊCH LÝ — VS SCREEN -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">THE PARADOX</div>
+        <h3 style="margin-bottom:0.6em">Cùng tầm scale. Chọn ngược nhau hoàn toàn.</h3>
+        <div class="vs">
+          <div class="fighter fighter--pg">
+            <div class="who">Instagram</div>
+            <div class="reason">Data quan hệ chặt: user → post → like → comment. Cần consistency, đọc theo quan hệ.</div>
+            <div class="tag"><span class="chip chip--pg">PostgreSQL</span></div>
+          </div>
+          <div class="vs-badge">VS</div>
+          <div class="fighter fighter--scylla">
+            <div class="who">Discord</div>
+            <div class="reason">Hàng tỷ message. Append-only, gần như không sửa. Cần horizontal scale, low latency.</div>
+            <div class="tag"><span class="chip chip--scylla">ScyllaDB</span></div>
+          </div>
+        </div>
+        <p class="verdict fragment" style="color:var(--accent); text-align:center; margin-top:0.9em">Ai sai? &mdash; Không ai sai. Hai bài toán khác nhau.</p>
+      </div>
+    </section>
+
+    <!-- 6 · BẢNG 6 CÔNG TY -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">REAL-WORLD</div>
+        <h3 style="margin-bottom:0.5em">Cùng "scale lớn" — storage khác nhau</h3>
+        <table class="ctable">
+          <thead><tr><th>COMPANY</th><th>DB</th><th>WHY</th></tr></thead>
+          <tbody>
+            <tr class="hl">
+              <td class="co"><span class="dbdot" style="background:var(--pg)"></span>Instagram</td>
+              <td>PostgreSQL</td>
+              <td class="reason">Data quan hệ chặt, cần consistency — đọc theo quan hệ</td>
+            </tr>
+            <tr class="hl">
+              <td class="co"><span class="dbdot" style="background:var(--scylla)"></span>Discord</td>
+              <td>ScyllaDB</td>
+              <td class="reason">Hàng tỷ message, append-only. Cần horizontal scale, low latency</td>
+            </tr>
+            <tr>
+              <td class="co"><span class="dbdot" style="background:var(--mysql)"></span>Shopify</td>
+              <td>MySQL + Redis</td>
+              <td class="reason">Order/payment cần ACID. Flash sale spike → Redis chặn traffic</td>
+            </tr>
+            <tr>
+              <td class="co"><span class="dbdot" style="background:var(--cass)"></span>Netflix</td>
+              <td>Cassandra</td>
+              <td class="reason">Viewing history: write nhiều, read theo user_id. Multi-region, eventual</td>
+            </tr>
+            <tr>
+              <td class="co"><span class="dbdot" style="background:var(--oracle)"></span>Ngân hàng VN</td>
+              <td>Oracle / SQL</td>
+              <td class="reason">Sai 1 đồng là thảm hoạ. ACID không compromise. TPS không quá lớn</td>
+            </tr>
+            <tr class="hl">
+              <td class="co"><span class="dbdot" style="background:var(--accent)"></span>Uber</td>
+              <td>MySQL + NoSQL</td>
+              <td class="reason">Trip cần ACID → MySQL. Location real-time → NoSQL</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 7 · TWIST UBER -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">THE TWIST</div>
+        <h2 style="margin-bottom:0.4em">Ngay trong MỘT công ty<br>cũng không có 1 đáp án</h2>
+        <div class="split">
+          <div class="lane lane--acid">
+            <div class="role">TRIP / PAYMENT</div>
+            <div class="what">Phải đúng từng xu → <strong>MySQL</strong> (ACID)</div>
+            <div style="margin-top:16px"><span class="chip chip--mysql">MySQL</span></div>
+          </div>
+          <div class="lane lane--rt">
+            <div class="role">DRIVER LOCATION</div>
+            <div class="what">Cập nhật real-time mỗi giây → <strong>NoSQL</strong></div>
+            <div style="margin-top:16px"><span class="chip chip--scylla">NoSQL</span></div>
+          </div>
+        </div>
+        <p class="verdict fragment" style="color:var(--accent); margin-top:1em"><span class="mk">&gt;&gt;</span>Không phải "DB nào" — mà là "phần nào cần gì"</p>
+      </div>
+    </section>
+
+    <!-- 8 · THESIS -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">THE THESIS</div>
+        <h2>Mọi thứ quy về 3 câu hỏi</h2>
+        <ul class="qlist">
+          <li><span class="n">01</span><span>Đọc nhiều <span class="vs-word">hay</span> ghi nhiều?</span></li>
+          <li><span class="n">02</span><span>Có quan hệ <span class="vs-word">hay</span> độc lập?</span></li>
+          <li><span class="n">03</span><span>Đúng tuyệt đối <span class="vs-word">hay</span> chấp nhận lệch vài giây?</span></li>
+        </ul>
+        <p class="lead fragment" style="margin-top:0.8em">Trả lời được mấy câu này — <strong>DB tự lộ ra.</strong></p>
+        <p class="lead fragment" style="margin-top:0.3em">Và đừng tin trực giác — <strong>đo trên hệ của mình.</strong></p>
+      </div>
+    </section>
+
+    <!-- 9 · BẮC CẦU → PIXILAND -->
+    <section>
+      <div class="slide-body center">
+        <div class="eyebrow">NEXT</div>
+        <h1 class="bridge-title">Pixiland</h1>
+        <p class="bridge-sub">1 game GameFi · 1M user — đủ mọi loại workload vừa nói tới. Ta sẽ chọn DB cho từng phần.</p>
+        <div class="chip-row" style="justify-content:center; margin-top:1.3em">
+          <span class="chip chip--pg">PostgreSQL</span>
+          <span class="chip chip--mongo">MongoDB</span>
+          <span class="chip chip--redis">Redis</span>
+          <span class="chip chip--duck">DuckDB</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 · PHASE 2 — PIXILAND CONTEXT -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">CASE STUDY</div>
+        <h2>Pixiland — Live GameFi</h2>
+        <div class="stats">
+          <div class="stat"><div class="num">1M</div><div class="lbl">user đăng ký</div></div>
+          <div class="stat"><div class="num">300K</div><div class="lbl">MAU</div></div>
+        </div>
+        <ul class="feat-list">
+          <li>Xây làng · land NFT · building system</li>
+          <li>Hero collection — PvP / PvE dungeon</li>
+          <li>NFT marketplace qua Ronin</li>
+          <li>House occupancy — 1 user / 1 thời điểm</li>
+          <li>Event spike: đua top PvE, mining pools</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 11 · PHASE 2 — ONE GAME, MANY WORKLOADS -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">ONE GAME · MANY WORKLOADS</div>
+        <h3 style="margin-bottom:0.5em">Một game — nhiều workload</h3>
+        <table class="ctable">
+          <thead><tr><th>FEATURE</th><th>WORKLOAD</th><th>DEMO</th></tr></thead>
+          <tbody>
+            <tr><td class="co">House occupancy</td><td class="reason">Race condition · coordination ngắn hạn</td><td><strong>Demo 1</strong></td></tr>
+            <tr><td class="co">Hero / building config</td><td class="reason">Flexible schema · nested · evolve nhanh</td><td><strong>Demo 2</strong></td></tr>
+            <tr><td class="co">PvP season ranking</td><td class="reason">Read model realtime + settlement đúng tuyệt đối</td><td><strong>Demo 3</strong></td></tr>
+            <tr><td class="co">Admin metrics</td><td class="reason">OLAP · aggregate scan</td><td><strong>Demo 4</strong></td></tr>
+            <tr><td class="co" style="color:var(--muted)">Land NFT · marketplace</td><td class="reason">Transactional truth (nền)</td><td style="color:var(--muted)">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 12 · PHASE 3 — SQL FAMILY -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">SQL FAMILY</div>
+        <h3 style="margin-bottom:0.5em">Họ nhà SQL — chung: ACID + SQL</h3>
+        <table class="ctable">
+          <thead><tr><th>GROUP</th><th>TRAIT</th><th>EXAMPLES</th></tr></thead>
+          <tbody>
+            <tr><td class="kind">RDBMS (OLTP)</td><td class="reason">schema chặt, JOIN, transaction</td><td>PostgreSQL · MySQL · Oracle · SQL Server · SQLite</td></tr>
+            <tr><td class="kind">Distributed SQL</td><td class="reason">ACID + scale ngang</td><td>CockroachDB · Spanner · TiDB · YugabyteDB</td></tr>
+            <tr><td class="kind">OLAP columnar</td><td class="reason">vẫn SQL, lưu theo cột cho analytics</td><td>ClickHouse · DuckDB · Druid · BigQuery</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 13 · PHASE 3 — NoSQL FAMILY -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">NoSQL FAMILY</div>
+        <h3 style="margin-bottom:0.35em">Họ nhà NoSQL — đại diện từng loại</h3>
+        <table class="ctable dense">
+          <thead><tr><th>TYPE</th><th>TRAIT</th><th>EXAMPLES</th><th>FITS</th></tr></thead>
+          <tbody>
+            <tr><td class="kind" style="color:var(--redis)">Key-Value</td><td class="reason">get/set theo key, cực nhanh</td><td>Redis · Memcached · DynamoDB · etcd</td><td class="reason">cache, session, lock</td></tr>
+            <tr><td class="kind" style="color:var(--mongo)">Document</td><td class="reason">JSON nested, đọc nguyên object</td><td>MongoDB · CouchDB · Firestore</td><td class="reason">config, catalog</td></tr>
+            <tr><td class="kind" style="color:var(--scylla)">Wide-column</td><td class="reason">column-family, ghi cực nhiều</td><td>Cassandra · ScyllaDB · HBase · Bigtable</td><td class="reason">event log, feed</td></tr>
+            <tr><td class="kind" style="color:var(--cass)">Graph</td><td class="reason">node + edge, traversal</td><td>Neo4j · Neptune · ArangoDB</td><td class="reason">social, đề xuất, fraud</td></tr>
+            <tr><td class="kind" style="color:var(--pg)">Search</td><td class="reason">full-text, inverted index</td><td>Elasticsearch · OpenSearch · Solr</td><td class="reason">search, log analytics</td></tr>
+            <tr><td class="kind" style="color:var(--duck)">Time-series</td><td class="reason">tối ưu trục thời gian</td><td>InfluxDB · TimescaleDB · Prometheus</td><td class="reason">metrics, IoT</td></tr>
+            <tr><td class="kind" style="color:var(--accent)">Vector</td><td class="reason">similarity trên embedding</td><td>pgvector · Pinecone · Qdrant · Weaviate</td><td class="reason">AI / RAG, semantic</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 14 · PHASE 3 — TWO GOTCHAS -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">TWO GOTCHAS</div>
+        <h3 style="margin-bottom:0.5em">Hai điều dễ nhầm</h3>
+        <div class="split">
+          <div class="lane lane--acid">
+            <div class="role">WIDE-COLUMN vs COLUMNAR OLAP</div>
+            <div class="what">Tên na ná, mục đích ngược nhau. <strong>Cassandra</strong> (wide-column) tối ưu ghi/đọc theo partition key — OLTP. <strong>ClickHouse / DuckDB</strong> (columnar OLAP) tối ưu scan + aggregate — analytics.</div>
+          </div>
+          <div class="lane lane--rt">
+            <div class="role">THE LINE IS BLURRING</div>
+            <div class="what">PostgreSQL nuốt dần nhiều loại: JSONB (document), pgvector (vector), TimescaleDB (time-series), PostGIS (geo). Nhiều khi chỉ cần một extension, không cần DB mới.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 15 · PHASE 3 — 4 REPRESENTATIVES (narrow down → demos) -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">THE 4 WE BENCHMARK</div>
+        <h3 style="margin-bottom:0.5em">Từ cả bản đồ — 4 đại diện chạy demo hôm nay</h3>
+        <table class="ctable">
+          <thead><tr><th>DB</th><th>FAMILY</th><th>ROLE</th></tr></thead>
+          <tbody>
+            <tr><td class="co"><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL</td><td>Relational SQL</td><td class="reason">ACID, JOIN, index, transactional truth</td></tr>
+            <tr><td class="co"><span class="dbdot" style="background:var(--mongo)"></span>MongoDB</td><td>Document</td><td class="reason">Schema-flexible, nested object, evolve nhanh</td></tr>
+            <tr><td class="co"><span class="dbdot" style="background:var(--redis)"></span>Redis</td><td>Key-Value / data-structure</td><td class="reason">In-memory, atomic, TTL, Sorted Set</td></tr>
+            <tr><td class="co"><span class="dbdot" style="background:var(--duck)"></span>DuckDB</td><td>OLAP Columnar</td><td class="reason">Aggregate scan, analytics, lightweight</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ DEMO 1 ============ -->
+    <section>
+      <div class="slide-body center">
+        <div class="phase-num">D1</div>
+        <div class="eyebrow">DEMO 1 · RACE CONDITION</div>
+        <h1>House contention</h1>
+        <p class="big" style="max-width:26ch">100 user · 1 house trống · cùng một lúc — chỉ <strong>1 người</strong> được thắng</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">3 APPROACHES</div>
+        <h3 style="margin-bottom:0.5em">Chống race condition — 3 cách</h3>
+        <div class="cards c3">
+          <div class="acard" style="--c:var(--pg)">
+            <h4>Naive PostgreSQL</h4>
+            <div class="sub">read rồi update, không lock</div>
+            <ul class="pc">
+              <li class="no">Nhiều request cùng pass check NULL</li>
+              <li class="no">Nhiều user cùng "thắng" → oversubscribed</li>
+            </ul>
+          </div>
+          <div class="acard" style="--c:var(--pg)">
+            <h4>PostgreSQL FOR UPDATE</h4>
+            <div class="sub">lock row trong transaction</div>
+            <ul class="pc">
+              <li class="ok">Đúng hoàn toàn — chỉ 1 thắng</li>
+              <li class="no">Spike lớn → xếp hàng sau row lock</li>
+            </ul>
+          </div>
+          <div class="acard" style="--c:var(--redis)">
+            <h4>Redis SET NX EX</h4>
+            <div class="sub">atomic, tự expire 30'</div>
+            <ul class="pc">
+              <li class="ok">Không lock, không queue — cực nhanh</li>
+              <li class="no">Không phải truth — phải ghi Postgres sau</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">BENCHMARK · GUESS vs REAL</div>
+        <h3 style="margin-bottom:0.4em">100 request cùng hit 1 house</h3>
+        <div class="guess"><b>KY VONG</b><span class="myth">FOR UPDATE chậm nhất (~300ms) · naive lệch vài winner · Redis ~30ms nhanh nhất</span></div>
+        <table class="ctable">
+          <thead><tr><th>APPROACH</th><th>WINNERS</th><th>LATENCY</th><th>CORRECTNESS</th></tr></thead>
+          <tbody class="fragment">
+            <tr><td class="co">Naive PostgreSQL</td><td>~80</td><td>~100ms</td><td style="color:var(--redis)">FAIL — oversubscribed</td></tr>
+            <tr><td class="co">PostgreSQL FOR UPDATE</td><td>1</td><td>~22ms</td><td style="color:var(--mongo)">Correct</td></tr>
+            <tr class="hl"><td class="co">Redis SET NX</td><td>1</td><td>~3ms</td><td style="color:var(--mongo)">Correct</td></tr>
+          </tbody>
+        </table>
+        <div class="verdict-box bust fragment"><span class="tag">BUSTED</span>naive ~80 winner (tệ hơn nghĩ), FOR UPDATE chỉ ~22ms — <strong>không phải chậm nhất</strong>. Đo, đừng đoán.</div>
+        <div class="note">DO THAT · 100 CONCURRENT · LOCALHOST</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">RIGHT PATTERN</div>
+        <h3 style="margin-bottom:0.5em">Kết hợp Redis + Postgres</h3>
+        <div class="flow">
+          <div class="step"><b>Redis SET NX</b><span class="ann">chặn race, coordination</span></div>
+          <div class="ar">↓ success</div>
+          <div class="step"><b>PostgreSQL UPDATE</b><span class="ann">ghi truth, audit log</span></div>
+          <div class="ar">↓ 30 phút sau</div>
+          <div class="step"><b>Redis TTL expire + cleanup</b><span class="ann">tự giải phóng</span></div>
+        </div>
+        <div class="takeaway" style="margin-top:0.7em; font-size:20px; padding:16px 20px">
+          Crash giữa hai bước? <strong>TTL là cái cứu</strong> — lock tự hết hạn, không kẹt vĩnh viễn. Và <strong>PostgreSQL là truth</strong> → độ lệch luôn bị chặn trên.
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">TAKEAWAY · DEMO 1</div>
+        <div class="takeaway">
+          <strong>Redis</strong> → coordination ngắn hạn, atomic, cực nhanh.<br>
+          <strong>PostgreSQL</strong> → final truth, audit log, không mất khi restart.
+          <span class="small">Không để Redis làm truth cuối cùng · không để Postgres làm coordination dưới spike.</span>
+        </div>
+        <ul class="pick" style="margin-top:0.9em">
+          <li><strong>Scale bottleneck:</strong> Postgres hot row · Redis hot key — nằm ở <strong>access pattern</strong>, không phải lượng data.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ DEMO 2 ============ -->
+    <section>
+      <div class="slide-body center">
+        <div class="phase-num">D2</div>
+        <div class="eyebrow">DEMO 2 · FLEXIBLE SCHEMA</div>
+        <h1>Hero / building config</h1>
+        <p class="big" style="max-width:28ch">Config nested, optional fields, <strong>evolve mỗi tuần</strong></p>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">3 APPROACHES</div>
+        <h3 style="margin-bottom:0.5em">Lưu config — 3 cách</h3>
+        <div class="cards c3">
+          <div class="acard" style="--c:var(--pg)">
+            <h4>PostgreSQL thuần</h4>
+            <div class="sub">normalized, nhiều bảng</div>
+            <ul class="pc">
+              <li class="ok">Constraint + FK chặt</li>
+              <li class="no">Thêm field → ALTER TABLE, migration chậm</li>
+              <li class="no">Đọc 1 hero phải JOIN 3–4 bảng</li>
+            </ul>
+          </div>
+          <div class="acard" style="--c:var(--pg)">
+            <h4>PostgreSQL JSONB</h4>
+            <div class="sub">cột config JSONB</div>
+            <ul class="pc">
+              <li class="ok">Flexible + vẫn ACID, 1 DB duy nhất</li>
+              <li class="ok">Index được: B-tree expr + GIN</li>
+              <li class="no">Validate nested ở app layer</li>
+            </ul>
+          </div>
+          <div class="acard" style="--c:var(--mongo)">
+            <h4>MongoDB</h4>
+            <div class="sub">document tự nhiên</div>
+            <ul class="pc">
+              <li class="ok">DX tốt nhất khi schema đổi liên tục</li>
+              <li class="no">Không FK · $lookup chậm hơn JOIN</li>
+              <li class="no">Thêm 1 DB phải maintain</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">BENCHMARK · GUESS vs REAL</div>
+        <h3 style="margin-bottom:0.35em">Khác biệt thật không nằm ở tốc độ</h3>
+        <div class="guess"><b>KY VONG</b><span class="myth">schema flexible thì phải dùng MongoDB · JSONB là compromise chậm</span></div>
+        <table class="ctable dense">
+          <thead><tr><th>OPERATION</th><th>PG PLAIN</th><th>PG JSONB</th><th>MONGO</th></tr></thead>
+          <tbody class="fragment">
+            <tr><td class="co">Insert 10K</td><td class="reason">~0.40s</td><td class="reason">~0.11s</td><td class="reason">~0.07s</td></tr>
+            <tr><td class="co">Query nested field</td><td class="reason">~2.4ms (JOIN)</td><td class="reason">~2.1ms (GIN)</td><td class="reason">~2.8ms</td></tr>
+            <tr><td class="co">Thêm field mới</td><td class="reason">ALTER TABLE</td><td class="reason">không cần</td><td class="reason">không cần</td></tr>
+            <tr><td class="co">Đọc nguyên 1 hero</td><td class="reason">3 JOINs</td><td class="reason">1 query</td><td class="reason">1 query</td></tr>
+            <tr><td class="co">Foreign key</td><td class="reason" style="color:var(--mongo)">✓ DB level</td><td class="reason" style="color:var(--mongo)">✓ SQL tables</td><td class="reason" style="color:var(--redis)">✗ app only</td></tr>
+            <tr><td class="co">Operational</td><td class="reason">1 DB</td><td class="reason">1 DB</td><td class="reason">DB riêng</td></tr>
+          </tbody>
+        </table>
+        <div class="verdict-box bust fragment"><span class="tag">BUSTED</span>Cả ba ngang nhau ở scale này — <strong>JSONB đủ</strong>. Khác biệt thật: schema evolution + team velocity.</div>
+        <div class="note">DO THAT · 10K HERO · LOCALHOST</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">WHEN TO PICK</div>
+        <h3 style="margin-bottom:0.4em">Khi nào chọn gì</h3>
+        <ul class="pick">
+          <li><strong>PG thuần</strong> — quan hệ phức tạp, schema ổn định → users, wallets, transactions</li>
+          <li class="acc"><strong>PG JSONB</strong> — muốn flexible, không thêm DB → hero_config, building_config</li>
+          <li><strong>MongoDB</strong> — document là access pattern chính, object lớn, ít JOIN</li>
+        </ul>
+        <div class="takeaway" style="margin-top:0.8em; font-size:21px; padding:18px 22px">
+          Flexible schema <strong>không</strong> tự động = MongoDB. JSONB là middle ground mạnh: flexibility + ACID + một DB duy nhất.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DEMO 3 ============ -->
+    <section>
+      <div class="slide-body center">
+        <div class="phase-num">D3</div>
+        <div class="eyebrow">DEMO 3 · LEADERBOARD</div>
+        <h1>PvP season ranking</h1>
+        <p class="big" style="max-width:30ch">Top 100 realtime · cuối season top 10 nhận reward</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">READ MODEL vs TRUTH</div>
+        <h3 style="margin-bottom:0.5em">Hai yêu cầu trông giống, thực ra rất khác</h3>
+        <table class="ctable">
+          <thead><tr><th></th><th>REALTIME DISPLAY</th><th>SETTLEMENT</th></tr></thead>
+          <tbody>
+            <tr><td class="co">Mục tiêu</td><td class="reason">Top 100 trên màn hình</td><td class="reason">Reward chính xác</td></tr>
+            <tr><td class="co">Yêu cầu</td><td class="reason">Nhanh, latency thấp</td><td class="reason">Đúng tuyệt đối</td></tr>
+            <tr><td class="co">Sai một bậc</td><td class="reason" style="color:var(--mongo)">Chấp nhận được</td><td class="reason" style="color:var(--redis)">Mất phần thưởng thật</td></tr>
+            <tr><td class="co">Audit trail</td><td class="reason">Không cần</td><td class="reason">Bắt buộc</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">2 APPROACHES</div>
+        <h3 style="margin-bottom:0.5em">Top N realtime — 2 cách</h3>
+        <div class="cards c2">
+          <div class="acard" style="--c:var(--pg)">
+            <h4>PostgreSQL UPSERT + ORDER BY</h4>
+            <div class="sub">có INDEX (score DESC)</div>
+            <ul class="pc">
+              <li class="ok">Consistent, audit trail; top-N nhanh nếu có index</li>
+              <li class="no">Tải leaderboard đè chung OLTP; chỉ chậm khi scale rất lớn / thiếu index</li>
+            </ul>
+          </div>
+          <div class="acard" style="--c:var(--redis)">
+            <h4>Redis Sorted Set</h4>
+            <div class="sub">ZADD O(log N) · ZREVRANGE O(log N + M)</div>
+            <ul class="pc">
+              <li class="ok">Write throughput ~5x · tách tải khỏi OLTP · O(log N)</li>
+              <li class="no">In-memory · không audit · không query phức tạp</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">BENCHMARK · GUESS vs REAL</div>
+        <h3 style="margin-bottom:0.45em">100K update · đọc top-10: idle vs spike</h3>
+        <div class="guess"><b>KY VONG</b><span class="myth">Redis đọc top-N nhanh hơn ~200x · PG spike 500ms-1s</span></div>
+        <table class="ctable">
+          <thead><tr><th></th><th>POSTGRESQL (INDEX)</th><th>REDIS SORTED SET</th></tr></thead>
+          <tbody class="fragment">
+            <tr class="hl"><td class="co">100K update (throughput)</td><td class="reason">~2.8s</td><td class="reason">~0.5s</td></tr>
+            <tr><td class="co">top-10 read · idle</td><td class="reason">~0.1ms</td><td class="reason">~0.0ms</td></tr>
+            <tr><td class="co">top-10 read · dưới write spike</td><td class="reason">~0.5ms</td><td class="reason">~0.4ms</td></tr>
+            <tr><td class="co">Data sau restart</td><td class="reason" style="color:var(--mongo)">✓</td><td class="reason">cần AOF/RDB</td></tr>
+            <tr><td class="co">Audit trail</td><td class="reason" style="color:var(--mongo)">✓</td><td class="reason" style="color:var(--redis)">✗</td></tr>
+          </tbody>
+        </table>
+        <div class="verdict-box bust fragment"><span class="tag">BUSTED</span>Có index, PG đọc top-N <strong>ngang Redis</strong> kể cả spike. Redis thắng ở WRITE throughput (~5x) + tách OLTP.</div>
+        <div class="note">DO THAT · 100K UPDATE · LOCALHOST</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">RIGHT PATTERN · TAKEAWAY</div>
+        <h3 style="margin-bottom:0.5em">Tách read model khỏi truth</h3>
+        <div class="flow">
+          <div class="step"><b>Mỗi trận → PostgreSQL</b><span class="ann">battle result = truth, audit</span></div>
+          <div class="step"><b>Mỗi trận → Redis ZADD</b><span class="ann">score = read model, display</span></div>
+          <div class="ar">↓ cuối season</div>
+          <div class="step"><b>PostgreSQL tính lại → reward</b><span class="ann">Redis clear, reset</span></div>
+        </div>
+        <div class="takeaway" style="margin-top:0.7em; font-size:20px; padding:16px 20px">
+          Redis lệch Postgres → <strong>Postgres thắng</strong>. Redis crash mất leaderboard cũng không sao — rebuild từ battle results. Đó là lợi ích của tách read model khỏi truth.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DEMO 4 ============ -->
+    <section>
+      <div class="slide-body center">
+        <div class="phase-num">D4</div>
+        <div class="eyebrow">DEMO 4 · ANALYTICS</div>
+        <h1>Admin analytics</h1>
+        <p class="big" style="max-width:30ch">DAU · win rate · region · 50–100 triệu battle log rows</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">OLTP vs OLAP</div>
+        <h3 style="margin-bottom:0.5em">Hai pattern ngược nhau — không tối ưu cùng lúc</h3>
+        <div class="cards c2">
+          <div class="acard" style="--c:var(--pg)">
+            <h4>OLTP</h4>
+            <div class="sub">transaction game</div>
+            <ul class="pc">
+              <li class="ok">Ít rows, nhiều lần, point query</li>
+              <li class="ok">Row storage, index tối ưu</li>
+            </ul>
+          </div>
+          <div class="acard" style="--c:var(--duck)">
+            <h4>OLAP</h4>
+            <div class="sub">analytics dashboard</div>
+            <ul class="pc">
+              <li class="ok">Nhiều rows, ít lần, aggregate nặng</li>
+              <li class="ok">Columnar storage, scan theo cột</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">BENCHMARK · GUESS vs REAL</div>
+        <h3 style="margin-bottom:0.45em">Aggregate trên 5 triệu battle log</h3>
+        <div class="guess"><b>KY VONG</b><span class="myth">DuckDB (columnar) nhanh hơn Postgres cho aggregate scan</span></div>
+        <table class="ctable">
+          <thead><tr><th>QUERY</th><th>POSTGRESQL</th><th>DUCKDB</th></tr></thead>
+          <tbody class="fragment">
+            <tr><td class="co">Hero win rate (90 ngày)</td><td class="reason">~190ms</td><td class="reason">~21ms</td></tr>
+            <tr><td class="co">DAU theo ngày</td><td class="reason">~2.4s</td><td class="reason">~100ms</td></tr>
+            <tr><td class="co">Battles theo region+giờ</td><td class="reason">~293ms</td><td class="reason">~28ms</td></tr>
+            <tr class="hl"><td class="co">Chạy chung OLTP?</td><td class="reason" style="color:var(--redis)">tranh CPU/IO với game</td><td class="reason" style="color:var(--mongo)">engine riêng — không đụng</td></tr>
+          </tbody>
+        </table>
+        <div class="verdict-box confirm fragment"><span class="tag">CONFIRMED</span>DuckDB <strong>~10–30x</strong> — đúng như nghĩ. Điểm chính: tách analytics khỏi OLTP, query nặng không đụng người chơi.</div>
+        <div class="note">DO THAT · 5M ROWS · LOCALHOST</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">CONDITION · TAKEAWAY</div>
+        <h3 style="margin-bottom:0.4em">"Không đụng OLTP" — với một điều kiện</h3>
+        <ul class="pick">
+          <li>Đưa battle_logs sang OLAP: <strong>export Parquet định kỳ · CDC · read-replica</strong></li>
+          <li class="acc">Khâu sync cũng tốn tài nguyên → chạy off-peak / trên replica, đừng scan primary giờ cao điểm</li>
+        </ul>
+        <div class="takeaway" style="margin-top:0.8em; font-size:21px; padding:18px 22px">
+          Tách OLAP khỏi OLTP là <strong>quyết định kiến trúc</strong>, không phải tối ưu performance — tách cả compute lẫn đường lấy data.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PITFALLS ============ -->
+    <section>
+      <div class="slide-body center">
+        <div class="eyebrow">PITFALLS · REAL WORLD</div>
+        <h1>Khi kiến trúc đẹp đổ vỡ</h1>
+        <p class="big" style="max-width:32ch">Team không bắt đầu với kiến trúc đẹp — mà với deadline, rồi accumulate những quyết định nhỏ tưởng vô hại</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">PITFALLS · 1-2</div>
+        <div class="cards c2">
+          <div class="acard" style="--c:var(--redis)">
+            <h4>1 · Redis làm source of truth</h4>
+            <div class="pf"><b>Vấn đề:</b> in-memory, restart mất data; có MULTI/EXEC + Lua nhưng không rollback / isolation như SQL.</div>
+            <div class="pf"><b>Dấu hiệu:</b> viết script "sync Redis về Postgres" chạy định kỳ.</div>
+          </div>
+          <div class="acard" style="--c:var(--mongo)">
+            <h4>2 · MongoDB nhưng tư duy SQL</h4>
+            <div class="pf"><b>Vấn đề:</b> <code>$lookup</code> không có query planner như JOIN, không FK — chậm hơn SQL JOIN.</div>
+            <div class="pf"><b>Dấu hiệu:</b> pipeline <code>$lookup</code> 3–4 stage khắp nơi.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">PITFALLS · 3-4</div>
+        <div class="cards c2">
+          <div class="acard" style="--c:var(--accent)">
+            <h4>3 · Duplicate data không kiểm soát</h4>
+            <div class="pf"><b>Vấn đề:</b> embed/denormalize (document hoặc JSONB) → mất single source of truth, 2 nơi ra 2 kết quả.</div>
+            <div class="pf"><b>Dấu hiệu:</b> "data hiển thị khác nhau tùy chỗ".</div>
+          </div>
+          <div class="acard" style="--c:var(--pg)">
+            <h4>4 · SQL ôm luôn analytics</h4>
+            <div class="pf"><b>Vấn đề:</b> thêm index cho analytics → OLTP write chậm; hai workload triệt tiêu nhau.</div>
+            <div class="pf"><b>Dấu hiệu:</b> báo cáo schedule chạy 2 giờ sáng.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">PITFALLS · 5-6</div>
+        <div class="cards c2">
+          <div class="acard" style="--c:var(--duck)">
+            <h4>5 · Hiểu sai scalability</h4>
+            <div class="pf"><b>Vấn đề:</b> nhiều user ≠ cùng bottleneck; contention scale ≠ data volume; schema scale ≠ throughput.</div>
+            <div class="pf"><b>Dấu hiệu:</b> "thêm read replica" nhưng vẫn nghẽn write contention.</div>
+          </div>
+          <div class="acard" style="--c:var(--scylla)">
+            <h4>6 · Vội polyglot, thêm DB quá sớm</h4>
+            <div class="pf"><b>Vấn đề:</b> mỗi DB thêm = thêm vận hành + bài toán consistency, trước khi có scale thật.</div>
+            <div class="pf"><b>Dấu hiệu:</b> mỗi DB một service nhưng chỉ chứa vài nghìn record.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">PITFALLS · RECAP</div>
+        <div class="takeaway">
+          Không có database nào tệ tuyệt đối — vấn đề là <strong>dùng sai storage cho sai workload</strong>.
+          <span class="small">Redis làm truth → mất data · Mongo tư duy SQL → chậm hơn SQL · Duplicate → không biết đâu đúng · Analytics đè OLTP → cả hai chậm · Hiểu sai bottleneck → sai vấn đề · Vội polyglot → phức tạp trước khi cần</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DECISION FRAMEWORK ============ -->
+    <section>
+      <div class="slide-body center">
+        <div class="eyebrow">DECISION FRAMEWORK</div>
+        <h1>Gặp bài toán mới —<br>bắt đầu từ đâu?</h1>
+        <p class="big" style="max-width:32ch">Không phải "dùng DB gì" — mà "<strong>data này đóng vai trò gì</strong>"</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">STEP 1 · DATA LAYER</div>
+        <h3 style="margin-bottom:0.5em">6 lớp dữ liệu</h3>
+        <table class="ctable">
+          <thead><tr><th>LAYER</th><th>TRAIT</th></tr></thead>
+          <tbody>
+            <tr><td class="co">Transactional truth</td><td class="reason">đúng tuyệt đối, có audit</td></tr>
+            <tr><td class="co">Flexible config</td><td class="reason">nested, evolve nhanh, đọc nguyên object</td></tr>
+            <tr><td class="co">Realtime coordination</td><td class="reason">ngắn hạn, atomic, không persist lâu</td></tr>
+            <tr><td class="co">Read model / ranking</td><td class="reason">display nhanh, chấp nhận eventual</td></tr>
+            <tr><td class="co">Event log</td><td class="reason">append-only, volume lớn, ít update</td></tr>
+            <tr><td class="co">Analytics</td><td class="reason">aggregate nặng, scan lớn, offline ok</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">STEP 2 · 4 QUESTIONS</div>
+        <h3 style="margin-bottom:0.5em">4 câu hỏi trước khi chọn DB</h3>
+        <div class="cards c2">
+          <div class="acard" style="--c:var(--accent)">
+            <h4>1 · Workload là gì?</h4>
+            <div class="map">Đọc nhiều, point query → <b>SQL + index</b></div>
+            <div class="map">Ghi nhiều, append-only → <b>wide-column / partition</b></div>
+            <div class="map">Aggregate scan → <b>OLAP riêng</b></div>
+          </div>
+          <div class="acard" style="--c:var(--accent)">
+            <h4>2 · Consistency cần gì?</h4>
+            <div class="map">Mất tiền / NFT → <b>ACID, Postgres</b></div>
+            <div class="map">Rank lệch vài giây → <b>eventual, Redis</b></div>
+            <div class="map">Report hơi cũ → <b>batch sync, DuckDB</b></div>
+          </div>
+          <div class="acard" style="--c:var(--accent)">
+            <h4>3 · Access pattern?</h4>
+            <div class="map">Theo ID + JOIN → <b>relational SQL</b></div>
+            <div class="map">Nguyên object nested → <b>document / JSONB</b></div>
+            <div class="map">Top N liên tục → <b>Sorted Set</b></div>
+          </div>
+          <div class="acard" style="--c:var(--accent)">
+            <h4>4 · Bottleneck ở đâu?</h4>
+            <div class="map">Data volume → <b>partition / OLAP</b></div>
+            <div class="map">Write contention → <b>Redis coordination</b></div>
+            <div class="map">Schema đổi nhanh → <b>JSONB / document</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">STEP 3 · PICK</div>
+        <h3 style="margin-bottom:0.4em">Câu hỏi → DB → ví dụ Pixiland</h3>
+        <table class="ctable dense">
+          <thead><tr><th>QUESTION</th><th>PICK</th><th>PIXILAND</th></tr></thead>
+          <tbody>
+            <tr><td class="co">ACID / source of truth?</td><td><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL</td><td class="reason">user, wallet, NFT, battle result</td></tr>
+            <tr><td class="co">Coordination ngắn hạn?</td><td><span class="dbdot" style="background:var(--redis)"></span>Redis</td><td class="reason">house lock, cooldown, rate limit</td></tr>
+            <tr><td class="co">Realtime rank / read model?</td><td><span class="dbdot" style="background:var(--redis)"></span>Redis Sorted Set</td><td class="reason">PvP leaderboard display</td></tr>
+            <tr><td class="co">Aggregate scan / analytics?</td><td><span class="dbdot" style="background:var(--duck)"></span>DuckDB / ClickHouse</td><td class="reason">dashboard, win rate, DAU</td></tr>
+            <tr><td class="co">Schema nested + cần JOIN?</td><td><span class="dbdot" style="background:var(--pg)"></span>Postgres JSONB</td><td class="reason">hero config, building config</td></tr>
+            <tr><td class="co">Document là access pattern chính?</td><td><span class="dbdot" style="background:var(--mongo)"></span>MongoDB</td><td class="reason">khi ít JOIN, đọc nguyên object</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">PIXILAND STACK</div>
+        <h3 style="margin-bottom:0.4em">5 vai trò · 3 engine</h3>
+        <table class="ctable dense">
+          <thead><tr><th>ENGINE</th><th>USED FOR</th><th>ROLE</th></tr></thead>
+          <tbody>
+            <tr><td class="co"><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL</td><td class="reason">user, wallet, NFT, battle result</td><td>transactional truth</td></tr>
+            <tr><td class="co"><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL JSONB</td><td class="reason">hero config, building config</td><td>flexible truth</td></tr>
+            <tr><td class="co"><span class="dbdot" style="background:var(--redis)"></span>Redis</td><td class="reason">house lock, resource counter</td><td>coordination</td></tr>
+            <tr><td class="co"><span class="dbdot" style="background:var(--redis)"></span>Redis Sorted Set</td><td class="reason">PvP leaderboard display</td><td>read model</td></tr>
+            <tr><td class="co"><span class="dbdot" style="background:var(--duck)"></span>DuckDB/ClickHouse</td><td class="reason">dashboard, analytics, win rate</td><td>analytics layer</td></tr>
+          </tbody>
+        </table>
+        <div class="note">MONGODB KHONG TRONG STACK - JSONB DA DU · THEM ENGINE KHI DO DUOC NHU CAU</div>
+      </div>
+    </section>
+
+    <!-- ============ Q&A ============ -->
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">OPEN DISCUSSION</div>
+        <h2 style="margin-bottom:0.5em">Câu hỏi gợi mở</h2>
+        <ul class="pick">
+          <li>Hệ thống hiện tại có chỗ nào <strong>analytics chạy trên OLTP</strong> không? Báo cáo có schedule lúc 2 giờ sáng?</li>
+          <li>"<strong>Source of truth</strong> cho balance / inventory là đâu" — trả lời ngay được, hay phải họp team?</li>
+          <li>Lần gần nhất thêm field vào entity chính — mất bao lâu từ quyết định đến deploy?</li>
+          <li class="acc">Lần hệ thống chậm gần nhất — bottleneck thật ở đâu: data volume, write contention, query nặng, hay connection pool?</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ SPINE PAYOFF ============ -->
+    <section>
+      <div class="slide-body center">
+        <div class="eyebrow">MEASURE NOT GUESS</div>
+        <h1>Đo, đừng đoán</h1>
+        <p class="big" style="max-width:36ch">Hôm nay <strong>3/4</strong> lần benchmark <strong>khác</strong> trực giác — FOR UPDATE không chậm, JSONB đủ thay Mongo, Redis thắng <em>write</em> chứ không phải read.</p>
+        <p class="lead" style="margin-top:0.6em">Số đúng nằm trên <strong>hệ của bạn</strong>, không phải blog người khác.</p>
+      </div>
+    </section>
+
+    <!-- ============ CLOSING ============ -->
+    <section>
+      <div class="slide-body center">
+        <div class="eyebrow">THE ONE TAKEAWAY</div>
+        <h1>Đặt đúng câu hỏi<br>trước khi chọn DB</h1>
+        <p class="big" style="max-width:36ch">Đây là <strong>truth</strong>, <strong>read model</strong>, <strong>coordination</strong>, hay <strong>analytics</strong>? — câu trả lời tự chỉ ra DB phù hợp.</p>
+        <div class="chip-row" style="justify-content:center; margin-top:1.3em">
+          <span class="chip chip--pg">PostgreSQL</span>
+          <span class="chip chip--mongo">MongoDB</span>
+          <span class="chip chip--redis">Redis</span>
+          <span class="chip chip--duck">DuckDB</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script type="module">
+  import Reveal from 'https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.esm.js';
+  Reveal.initialize({
+    width: 1280,
+    height: 720,
+    margin: 0.04,
+    hash: true,
+    slideNumber: 'c/t',
+    controls: true,
+    progress: true,
+    transition: 'slide',
+    transitionSpeed: 'fast',
+  });
+</script>
+</body>
+</html>

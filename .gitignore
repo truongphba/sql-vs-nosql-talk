@@ -1,0 +1,12 @@
+node_modules/
+.env
+*.duckdb
+*.parquet
+data/
+.DS_Store
+
+# IDE
+.idea/
+
+# Installed agent skills (re-add via `npx skills add`; tracked by skills-lock.json)
+.agents/

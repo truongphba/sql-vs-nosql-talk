@@ -1,0 +1,33 @@
+{
+  "name": "pixiland-db-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Demo code cho tech talk SQL vs NoSQL (Pixiland case study)",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down -v",
+    "db:logs": "docker compose logs -f",
+    "demo:1": "tsx demos/01-house-contention/index.ts",
+    "demo:2": "tsx demos/02-hero-config/index.ts",
+    "demo:3": "tsx demos/03-leaderboard/index.ts",
+    "demo:4": "tsx demos/04-analytics/index.ts"
+  },
+  "dependencies": {
+    "@duckdb/node-api": "^1.5.4-r.1",
+    "cli-table3": "^0.6.5",
+    "ioredis": "^5.4.1",
+    "mongodb": "^6.21.0",
+    "pg": "^8.13.1",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
