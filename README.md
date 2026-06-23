@@ -1,6 +1,6 @@
 # Pixiland DB Talk — SQL vs NoSQL
 
-Tài liệu + slide + **demo chạy thật** cho buổi tech talk *"SQL vs NoSQL — chọn storage theo workload, consistency và scale"*, dùng case study **Pixiland** (game GameFi, 1M user / 300K MAU).
+Tài liệu + slide + **demo chạy thật** cho buổi tech talk *"SQL vs NoSQL — chọn storage theo workload, consistency và scale"*, dùng case study **Pixiland** (game GameFi, 1M user / 50K DAU).
 
 Thông điệp xuyên suốt: **không có DB nào thắng mọi bài toán** — chọn theo *workload · consistency · access pattern · scale bottleneck*. Và: **đo, đừng đoán** — benchmark trên hệ của mình, vì vài "sự thật" quen thuộc sai ở scale thật.
 

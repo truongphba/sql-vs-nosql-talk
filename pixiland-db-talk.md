@@ -6,9 +6,10 @@
 ## Thông tin buổi chia sẻ
 
 - **Chủ đề:** SQL vs NoSQL — chọn storage theo workload, consistency và scale
-- **Bối cảnh:** Live GameFi platform — Pixiland (1M users, 300K MAU)
+- **Bối cảnh:** Live GameFi platform — Pixiland (1M users, 50K DAU)
 - **Định dạng:** Bài toán → Thiết kế → Benchmark → Scale bottleneck → Takeaway
 - **DB cover:** PostgreSQL · MongoDB · Redis · DuckDB
+- **Slide mở đầu:** đặt câu hỏi tranh luận "SQL hay NoSQL — cái nào thật sự tốt hơn?", dùng badge đại diện rộng hơn cho landscape: PostgreSQL · MySQL · MongoDB · Redis · Cassandra · ClickHouse.
 
 ---
 
@@ -26,9 +27,13 @@ Sau buổi này, người nghe nên thấy rõ:
 
 > Mục tiêu của 5 phút này **không phải dạy SQL vs NoSQL** — mà là (1) tạo nghịch lý, (2) cài thesis "chọn DB = đặt đúng câu hỏi", (3) mở một vòng lặp chỉ khép lại ở cuối buổi. Tránh định nghĩa SQL/NoSQL sớm — audience kỹ thuật biết rồi.
 
-### Bước 1 — Câu hỏi mồi (0:00–0:45)
+### Bước 1 — Mở bài + câu hỏi mồi (0:00–0:45)
 
-Mở bằng một câu hỏi mà ai cũng nghĩ mình biết đáp án:
+Slide title chỉ đặt vấn đề, không giải thích framework sớm:
+
+> "SQL hay NoSQL — cái nào thật sự tốt hơn?"
+
+Ngay sau đó chuyển sang slide `THE DEBATE` với câu hỏi mà ai cũng nghĩ mình biết đáp án:
 
 > "Một câu nhanh trước khi vào: SQL và NoSQL — theo mọi người cái nào **scale** tốt hơn?"
 
@@ -36,51 +41,38 @@ Mở bằng một câu hỏi mà ai cũng nghĩ mình biết đáp án:
 
 > "Hầu hết sẽ nói NoSQL. Hết buổi hôm nay, mọi người sẽ thấy đây là **câu hỏi sai từ đầu** — và đó mới là điều đáng nói."
 
-→ Tạo dissonance + mở vòng lặp ngay trong 45 giây đầu.
+→ Tạo dissonance + mở vòng lặp ngay trong 45 giây đầu. Slide này không cần thêm objective hoặc agenda; để câu hỏi tự kéo audience vào nghịch lý kế tiếp.
 
 ### Bước 2 — Nghịch lý: cùng scale, chọn ngược nhau (0:45–2:30)
 
-Đừng đọc cả bảng. Kể **2 công ty chọn ngược nhau ở cùng quy mô**:
+Đừng giải thích lý do ngay. Trước tiên cho slide hiện **chỉ logo công ty + DB lựa chọn**, chưa bật lý do. Cho mọi người tranh luận nhanh: cùng scale lớn, ai đang chọn đúng hơn?
 
-> "Instagram — hàng trăm triệu user — chạy trên **PostgreSQL**, một relational DB. Discord — cũng khổng lồ — thì bỏ SQL, chạy **ScyllaDB**, một NoSQL wide-column. Cùng tầm scale, chọn ngược nhau hoàn toàn. Ai sai?"
+> "Instagram — hàng trăm triệu user — chạy trên **PostgreSQL**, một relational DB. Discord — cũng khổng lồ — thì bỏ SQL, chạy **Cassandra**, một NoSQL wide-column. Cùng tầm scale, chọn ngược nhau hoàn toàn. Ai sai?"
 
-Khoảng lặng. Rồi:
+Khoảng lặng 10–15 giây để mọi người đoán lý do. Sau đó reveal lý do lựa chọn trên slide, rồi chốt:
 
 > "Không ai sai. Họ giải hai bài toán khác nhau. Instagram: data quan hệ chặt — user, post, like, comment đan vào nhau, cần consistency. Discord: một thứ duy nhất ở quy mô kinh khủng — message, chỉ ghi thêm, gần như không sửa."
 
-Bảng dưới để **trên slide** cho audience tự đọc — chỉ narrate 2–3 dòng, không đọc hết:
+### Bước 3 — Cú twist: ngay trong Instagram cũng không có 1 đáp án (2:30–3:45)
 
-| Công ty | Chọn | Lý do cốt lõi |
-|---|---|---|
-| **Instagram** | PostgreSQL | Data quan hệ chặt: user → post → like → comment. Cần consistency, đọc theo quan hệ |
-| **Discord** | ScyllaDB | Hàng tỷ message. Append-only, gần như không update record cũ. Cần horizontal scale, low latency |
-| **Shopify** | MySQL + Redis | Order/payment cần ACID. Flash sale spike → Redis cache chặn traffic vào DB |
-| **Netflix** | Cassandra | Viewing history: write nhiều, read theo user_id. Global multi-region, chấp nhận eventual consistency |
-| **Ngân hàng VN** | Oracle / SQL | Sai 1 đồng là thảm hoạ. ACID không thể compromise. TPS không quá lớn |
-| **Uber** | MySQL + NoSQL | Trip cần ACID → MySQL. Location/driver state real-time → NoSQL |
+Đây là điểm "À há" mạnh nhất — dùng chính Instagram, không mở thêm công ty mới:
 
-### Bước 3 — Cú twist: ngay trong MỘT công ty cũng không có 1 đáp án (2:30–3:45)
-
-Đây là điểm "À há" mạnh nhất — dùng Uber:
-
-> "Chưa hết. Uber — trip booking phải đúng từng xu, dùng **MySQL**. Nhưng vị trí tài xế cập nhật real-time mỗi giây thì để trên **NoSQL**. Cùng một công ty, cùng một sản phẩm, vẫn cần nhiều loại DB. Vậy câu hỏi 'SQL hay NoSQL' — vô nghĩa."
+> "Ngay trong Instagram cũng không có một đáp án. Post, comment, like, follow là dữ liệu quan hệ chặt — PostgreSQL hợp lý làm source of truth. Nhưng Home Feed lại là workload khác: mở app phải thấy feed ngay, cần ranking và feed cache kiểu Redis, không thể mỗi lần mở app lại JOIN live toàn bộ follow graph. Vậy câu hỏi không phải 'Instagram dùng DB nào', mà là 'phần nào của Instagram cần gì'."
 
 → Phá tư duy "chọn 1 DB cho cả hệ thống" — đây chính là cái mở đường cho 4 demo, mỗi demo một layer.
 
-### Bước 4 — Chốt thesis (3:45–4:30)
+### Bước 4 — Chuyển sang Pixiland (3:45–5:00)
 
-> Tất cả đều quy về vài câu hỏi: data của bạn **đọc nhiều hay ghi nhiều**, **có quan hệ hay độc lập**, **cần đúng tuyệt đối hay chấp nhận lệch vài giây**? Trả lời được mấy câu này, DB tự lộ ra.
+Không dùng slide thesis/bridge riêng nữa. Chốt bằng lời ngay sau twist Instagram:
+
+> "Vậy từ giờ đừng hỏi 'dùng DB nào cho cả hệ thống'. Hỏi phần này là truth, feed/cache, coordination hay analytics. Hôm nay ta làm điều đó trên một hệ thống thật — Pixiland, một game GameFi 1 triệu user. Trong cùng một game, mình sẽ gặp đủ mọi loại workload vừa nói tới."
 >
-> Và một nguyên tắc xuyên suốt hôm nay: **đo, đừng đoán.** Mỗi demo mình sẽ *đoán trước* rồi *chạy thật* — sẽ thấy vài "sự thật" quen thuộc sai ở scale thật. Số đúng nằm trên hệ của bạn, không phải benchmark trên blog.
-
-### Bước 5 — Bắc cầu sang Phase 2 (4:30–5:00)
-
-> "Hôm nay ta làm điều đó trên một hệ thống thật — Pixiland, một game GameFi 1 triệu user. Trong cùng một game, mình sẽ gặp đủ mọi loại workload vừa nói tới."
+> "Và một nguyên tắc xuyên suốt hôm nay: **đo, đừng đoán.** Mỗi demo mình sẽ đoán trước rồi chạy thật."
 
 > **Ghi chú độ chính xác (kẻo bị bắt bẻ):**
 > - Instagram: nói "data quan hệ chặt, cần consistency" — tránh nói "JOIN phức tạp" (Instagram shard Postgres và *tránh* cross-shard join).
-> - Discord: con số là minh hoạ — nói "hàng tỷ message" thay vì cam kết "4 tỷ/ngày". Nếu hỏi sâu: Discord đi MongoDB → Cassandra → ScyllaDB.
-> - Shopify / Netflix / Uber: các con số và lựa chọn đều vững, có thể nói tự tin.
+> - Discord: con số là minh hoạ — nói "hàng tỷ message" thay vì cam kết "4 tỷ/ngày". Slide dùng Cassandra cho dễ nhận diện family wide-column; nếu hỏi sâu: Discord đi MongoDB → Cassandra → ScyllaDB.
+> - Home Feed trên slide dùng "Redis / feed cache" vì nguồn public cũ về Instagram stack có nhắc Redis cho fast feeds. Không khẳng định kiến trúc hiện tại của Instagram vẫn y nguyên; mục tiêu là phân biệt source of truth quan hệ với cache/read model phục vụ đọc nhanh.
 
 ---
 
@@ -88,7 +80,7 @@ Bảng dưới để **trên slide** cho audience tự đọc — chỉ narrate 
 
 ### Pixiland — Live GameFi Platform
 
-**Quy mô:** 1 triệu user đăng ký · 300K MAU
+**Quy mô:** 1 triệu User · 50K DAU
 
 **Tính năng chính:**
 - Xây làng, land NFT, building system
@@ -101,13 +93,13 @@ Bảng dưới để **trên slide** cho audience tự đọc — chỉ narrate 
 
 Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái ta sẽ stress-test ở từng demo:
 
-| Tính năng | Loại workload | Demo |
-|---|---|---|
-| House occupancy (1 user/lúc) | Race condition · coordination ngắn hạn | Demo 1 |
-| Hero / building / item config | Flexible schema · nested · evolve nhanh | Demo 2 |
-| PvP season ranking | Read model realtime + settlement đúng tuyệt đối | Demo 3 |
-| Admin metrics (DAU, win rate…) | OLAP · aggregate scan | Demo 4 |
-| Land NFT · marketplace (Ronin) | Transactional truth (nền — không demo riêng) | — |
+| Tính năng | Loại workload |
+|---|---|
+| House occupancy (1 user/lúc) | Race condition · coordination ngắn hạn |
+| Hero / building / item config | Flexible schema · nested · evolve nhanh |
+| PvP season ranking | Read model realtime + settlement đúng tuyệt đối |
+| Admin metrics (DAU, win rate…) | OLAP · aggregate scan |
+| Land NFT · marketplace (Ronin) | Transactional truth (nền) |
 
 **Thông điệp:** Cùng một game — nhiều loại workload dữ liệu khác nhau, không có DB nào phù hợp cho tất cả.
 
@@ -395,7 +387,7 @@ mà là "phần nào cần đúng tuyệt đối, phần nào cần nhanh tuyệ
 
 Admin cần: DAU theo ngày, hero win rate, region active nhất, mining pool participation theo giờ.
 
-Với 300K MAU, battle log sau 6 tháng có thể đạt **50–100 triệu rows**. Query `SUM`, `COUNT`, `GROUP BY` trên hàng chục triệu rows trong khi PostgreSQL đang đồng thời phục vụ transaction game → tranh CPU, I/O → latency toàn hệ thống tăng đúng lúc người đang chơi.
+Với 50K DAU, battle log sau 6 tháng vẫn có thể đạt **50–100 triệu rows**. Query `SUM`, `COUNT`, `GROUP BY` trên hàng chục triệu rows trong khi PostgreSQL đang đồng thời phục vụ transaction game → tranh CPU, I/O → latency toàn hệ thống tăng đúng lúc người đang chơi.
 
 **Tại sao đây là vấn đề kiến trúc, không phải query optimization:**
 
@@ -433,7 +425,7 @@ Mấu chốt: **chính khâu sync cũng tốn tài nguyên** — cho nó chạy 
 
 ### Scale bottleneck (DB level)
 
-- **Data volume:** battle log tăng tuyến tính theo MAU và thời gian. PostgreSQL bắt đầu chật vật khi table vượt vài trăm triệu rows dù có partition
+- **Data volume:** battle log tăng tuyến tính theo active user và thời gian. PostgreSQL bắt đầu chật vật khi table vượt vài trăm triệu rows dù có partition
 - **Aggregate scan:** OLTP index tối ưu cho point query, không phải aggregate scan — đây là lý do columnar thắng tuyệt đối ở analytics workload
 - **Dashboard đè OLTP:** càng nhiều admin dùng đồng thời, càng nhiều heavy query song song — không có index nào cứu được
 
@@ -503,7 +495,7 @@ Tách hai layer này ra là quyết định kiến trúc, không phải tối ư
 
 ### Pitfall 5 — Hiểu sai scalability
 
-**Nhiều user ≠ cùng bottleneck.** 300K MAU nhưng peak concurrent có thể chỉ 30–50K. PostgreSQL handle được tốt. Nhưng nếu event spike — toàn bộ 300K cùng login trong 5 phút — bottleneck là connection pool, không phải query speed.
+**Nhiều user ≠ cùng bottleneck.** 1M user / 50K DAU nhưng peak concurrent thường chỉ vài nghìn đến hơn 10K. PostgreSQL handle được tốt. Nhưng nếu event spike — lượng lớn user cùng login trong vài phút — bottleneck là connection pool, không phải query speed.
 
 **Contention scale ≠ data volume scale.** House occupation — bottleneck không phải vì nhiều data, mà vì nhiều request tranh cùng một row. Thêm read replica không giải quyết được write contention.
 

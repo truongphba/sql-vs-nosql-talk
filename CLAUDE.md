@@ -4,7 +4,7 @@ Hướng dẫn cho Claude Code khi làm việc trong repo này.
 
 ## Dự án là gì
 
-Đây là repo phục vụ một **buổi tech talk nội bộ**: *"SQL vs NoSQL — chọn storage theo workload, consistency và scale"*, dùng case study **Pixiland** (game GameFi, 1M user / 300K MAU). Mục tiêu cuối là đứng trình bày được + chạy demo thật.
+Đây là repo phục vụ một **buổi tech talk nội bộ**: *"SQL vs NoSQL — chọn storage theo workload, consistency và scale"*, dùng case study **Pixiland** (game GameFi, 1M user / 50K DAU). Mục tiêu cuối là đứng trình bày được + chạy demo thật.
 
 Repo gồm 3 phần, làm theo thứ tự:
 

@@ -20,44 +20,25 @@
     <!-- 1 · TITLE -->
     <section data-auto-animate>
       <div class="slide-body center">
-        <div class="eyebrow">PIXILAND <span class="dim">·</span> TECH TALK</div>
+        <div class="eyebrow">SYSTEM DESIGN</div>
         <h1>SQL <span style="color:var(--muted)">vs</span> NoSQL</h1>
-        <p class="big" style="max-width:24ch">Chọn storage theo <strong>workload</strong>, <strong>consistency</strong> và <strong>scale</strong></p>
+        <p class="big" style="max-width:24ch"><strong>SQL hay NoSQL</strong> — cái nào thật sự <strong>tốt hơn?</strong></p>
         <div class="chip-row" style="justify-content:center; margin-top:1.4em">
           <span class="chip chip--pg">PostgreSQL</span>
+          <span class="chip chip--mysql">MySQL</span>
           <span class="chip chip--mongo">MongoDB</span>
           <span class="chip chip--redis">Redis</span>
-          <span class="chip chip--duck">DuckDB</span>
+          <span class="chip chip--cass">Cassandra</span>
+          <span class="chip chip--click">ClickHouse</span>
         </div>
       </div>
     </section>
 
-    <!-- 2 · MỤC TIÊU -->
-    <section>
-      <div class="slide-body">
-        <div class="eyebrow">OBJECTIVES</div>
-        <h2>Sau buổi này, bạn sẽ thấy rõ</h2>
-        <ul class="qlist">
-          <li><span class="n">A</span><span>Không có DB nào thắng <strong>mọi</strong> bài toán</span></li>
-          <li><span class="n">B</span><span>Một hệ thống thật có nhiều lớp dữ liệu: truth · config · coordination · read model · event log · analytics</span></li>
-          <li><span class="n">C</span><span>Chọn DB theo <strong>workload · consistency · access pattern · scale bottleneck</strong> — không theo trend</span></li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- 3 · PHASE 01 DIVIDER -->
+    <!-- 2 · OPENING QUESTION -->
     <section>
       <div class="slide-body center">
         <div class="phase-num">01</div>
-        <div class="eyebrow">HOOK <span class="dim">· 5 MIN</span></div>
-        <h1 style="margin-top:0.2em">Cùng scale —<br>chọn ngược nhau</h1>
-      </div>
-    </section>
-
-    <!-- 4 · CÂU HỎI MỒI -->
-    <section>
-      <div class="slide-body center">
-        <div class="eyebrow">WARM-UP QUESTION</div>
+        <div class="eyebrow">THE DEBATE</div>
         <div class="q-hero">
           SQL hay NoSQL — cái nào <em>scale</em> tốt hơn?
           <span class="strikebar fragment"></span>
@@ -66,130 +47,65 @@
       </div>
     </section>
 
-    <!-- 5 · NGHỊCH LÝ — VS SCREEN -->
+    <!-- 3 · NGHỊCH LÝ — VS SCREEN -->
     <section>
       <div class="slide-body">
         <div class="eyebrow">THE PARADOX</div>
         <h3 style="margin-bottom:0.6em">Cùng tầm scale. Chọn ngược nhau hoàn toàn.</h3>
-        <div class="vs">
+        <div class="vs vs--debate">
           <div class="fighter fighter--pg">
-            <div class="who">Instagram</div>
-            <div class="reason">Data quan hệ chặt: user → post → like → comment. Cần consistency, đọc theo quan hệ.</div>
-            <div class="tag"><span class="chip chip--pg">PostgreSQL</span></div>
+            <div class="choice-row" aria-label="Instagram chọn PostgreSQL">
+              <span class="brand-icon brand-icon--ig" title="Instagram"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png" alt="Instagram"></span>
+              <span class="chip chip--pg chip--choice">PostgreSQL</span>
+            </div>
+            <div class="reason fragment fade-up" data-fragment-index="1">Data quan hệ chặt: user → post → like → comment. Cần consistency, đọc theo quan hệ.</div>
           </div>
           <div class="vs-badge">VS</div>
-          <div class="fighter fighter--scylla">
-            <div class="who">Discord</div>
-            <div class="reason">Hàng tỷ message. Append-only, gần như không sửa. Cần horizontal scale, low latency.</div>
-            <div class="tag"><span class="chip chip--scylla">ScyllaDB</span></div>
+          <div class="fighter fighter--cass">
+            <div class="choice-row" aria-label="Discord chọn Cassandra">
+              <span class="brand-icon brand-icon--dc" title="Discord"><img src="https://cdn.simpleicons.org/discord/5865F2" alt="Discord"></span>
+              <span class="chip chip--cass chip--choice">Cassandra</span>
+            </div>
+            <div class="reason fragment fade-up" data-fragment-index="1">Hàng tỷ message. Append-only, gần như không sửa. Cần horizontal scale, low latency.</div>
           </div>
         </div>
-        <p class="verdict fragment" style="color:var(--accent); text-align:center; margin-top:0.9em">Ai sai? &mdash; Không ai sai. Hai bài toán khác nhau.</p>
+        <p class="verdict fragment" data-fragment-index="2" style="color:var(--accent); text-align:center; margin-top:0.9em">Ai sai? &mdash; Không ai sai. Hai bài toán khác nhau.</p>
       </div>
     </section>
 
-    <!-- 6 · BẢNG 6 CÔNG TY -->
-    <section>
-      <div class="slide-body">
-        <div class="eyebrow">REAL-WORLD</div>
-        <h3 style="margin-bottom:0.5em">Cùng "scale lớn" — storage khác nhau</h3>
-        <table class="ctable">
-          <thead><tr><th>COMPANY</th><th>DB</th><th>WHY</th></tr></thead>
-          <tbody>
-            <tr class="hl">
-              <td class="co"><span class="dbdot" style="background:var(--pg)"></span>Instagram</td>
-              <td>PostgreSQL</td>
-              <td class="reason">Data quan hệ chặt, cần consistency — đọc theo quan hệ</td>
-            </tr>
-            <tr class="hl">
-              <td class="co"><span class="dbdot" style="background:var(--scylla)"></span>Discord</td>
-              <td>ScyllaDB</td>
-              <td class="reason">Hàng tỷ message, append-only. Cần horizontal scale, low latency</td>
-            </tr>
-            <tr>
-              <td class="co"><span class="dbdot" style="background:var(--mysql)"></span>Shopify</td>
-              <td>MySQL + Redis</td>
-              <td class="reason">Order/payment cần ACID. Flash sale spike → Redis chặn traffic</td>
-            </tr>
-            <tr>
-              <td class="co"><span class="dbdot" style="background:var(--cass)"></span>Netflix</td>
-              <td>Cassandra</td>
-              <td class="reason">Viewing history: write nhiều, read theo user_id. Multi-region, eventual</td>
-            </tr>
-            <tr>
-              <td class="co"><span class="dbdot" style="background:var(--oracle)"></span>Ngân hàng VN</td>
-              <td>Oracle / SQL</td>
-              <td class="reason">Sai 1 đồng là thảm hoạ. ACID không compromise. TPS không quá lớn</td>
-            </tr>
-            <tr class="hl">
-              <td class="co"><span class="dbdot" style="background:var(--accent)"></span>Uber</td>
-              <td>MySQL + NoSQL</td>
-              <td class="reason">Trip cần ACID → MySQL. Location real-time → NoSQL</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- 7 · TWIST UBER -->
+    <!-- 4 · TWIST INSTAGRAM -->
     <section>
       <div class="slide-body">
         <div class="eyebrow">THE TWIST</div>
-        <h2 style="margin-bottom:0.4em">Ngay trong MỘT công ty<br>cũng không có 1 đáp án</h2>
+        <h2 style="margin-bottom:0.4em">Ngay trong Instagram<br>cũng không có 1 đáp án</h2>
         <div class="split">
           <div class="lane lane--acid">
-            <div class="role">TRIP / PAYMENT</div>
-            <div class="what">Phải đúng từng xu → <strong>MySQL</strong> (ACID)</div>
-            <div style="margin-top:16px"><span class="chip chip--mysql">MySQL</span></div>
+            <div class="role">POST / COMMENT / LIKE</div>
+            <div class="what">User, post, comment, like liên kết chặt → <strong>PostgreSQL</strong></div>
+            <div class="chip-row" style="margin-top:16px">
+              <span class="chip chip--pg">PostgreSQL</span>
+            </div>
           </div>
           <div class="lane lane--rt">
-            <div class="role">DRIVER LOCATION</div>
-            <div class="what">Cập nhật real-time mỗi giây → <strong>NoSQL</strong></div>
-            <div style="margin-top:16px"><span class="chip chip--scylla">NoSQL</span></div>
+            <div class="role">HOME FEED</div>
+            <div class="what">Mở app phải thấy feed ngay → <strong>Redis / feed cache</strong>, không JOIN live</div>
+            <div class="chip-row" style="margin-top:16px">
+              <span class="chip chip--redis">Redis cache</span>
+            </div>
           </div>
         </div>
-        <p class="verdict fragment" style="color:var(--accent); margin-top:1em"><span class="mk">&gt;&gt;</span>Không phải "DB nào" — mà là "phần nào cần gì"</p>
+        <p class="verdict fragment" style="color:var(--accent); margin-top:1em"><span class="mk">&gt;&gt;</span>Không phải "DB nào cho Instagram" — mà là "phần nào cần gì"</p>
       </div>
     </section>
 
-    <!-- 8 · THESIS -->
-    <section>
-      <div class="slide-body">
-        <div class="eyebrow">THE THESIS</div>
-        <h2>Mọi thứ quy về 3 câu hỏi</h2>
-        <ul class="qlist">
-          <li><span class="n">01</span><span>Đọc nhiều <span class="vs-word">hay</span> ghi nhiều?</span></li>
-          <li><span class="n">02</span><span>Có quan hệ <span class="vs-word">hay</span> độc lập?</span></li>
-          <li><span class="n">03</span><span>Đúng tuyệt đối <span class="vs-word">hay</span> chấp nhận lệch vài giây?</span></li>
-        </ul>
-        <p class="lead fragment" style="margin-top:0.8em">Trả lời được mấy câu này — <strong>DB tự lộ ra.</strong></p>
-        <p class="lead fragment" style="margin-top:0.3em">Và đừng tin trực giác — <strong>đo trên hệ của mình.</strong></p>
-      </div>
-    </section>
-
-    <!-- 9 · BẮC CẦU → PIXILAND -->
-    <section>
-      <div class="slide-body center">
-        <div class="eyebrow">NEXT</div>
-        <h1 class="bridge-title">Pixiland</h1>
-        <p class="bridge-sub">1 game GameFi · 1M user — đủ mọi loại workload vừa nói tới. Ta sẽ chọn DB cho từng phần.</p>
-        <div class="chip-row" style="justify-content:center; margin-top:1.3em">
-          <span class="chip chip--pg">PostgreSQL</span>
-          <span class="chip chip--mongo">MongoDB</span>
-          <span class="chip chip--redis">Redis</span>
-          <span class="chip chip--duck">DuckDB</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- 10 · PHASE 2 — PIXILAND CONTEXT -->
+    <!-- 5 · PHASE 2 — PIXILAND CONTEXT -->
     <section>
       <div class="slide-body">
         <div class="eyebrow">CASE STUDY</div>
         <h2>Pixiland — Live GameFi</h2>
         <div class="stats">
-          <div class="stat"><div class="num">1M</div><div class="lbl">user đăng ký</div></div>
-          <div class="stat"><div class="num">300K</div><div class="lbl">MAU</div></div>
+          <div class="stat"><div class="num">1M</div><div class="lbl">User</div></div>
+          <div class="stat"><div class="num">50K</div><div class="lbl">DAU</div></div>
         </div>
         <ul class="feat-list">
           <li>Xây làng · land NFT · building system</li>
@@ -201,25 +117,25 @@
       </div>
     </section>
 
-    <!-- 11 · PHASE 2 — ONE GAME, MANY WORKLOADS -->
+    <!-- 6 · PHASE 2 — ONE GAME, MANY WORKLOADS -->
     <section>
       <div class="slide-body">
         <div class="eyebrow">ONE GAME · MANY WORKLOADS</div>
         <h3 style="margin-bottom:0.5em">Một game — nhiều workload</h3>
         <table class="ctable">
-          <thead><tr><th>FEATURE</th><th>WORKLOAD</th><th>DEMO</th></tr></thead>
+          <thead><tr><th>FEATURE</th><th>WORKLOAD</th></tr></thead>
           <tbody>
-            <tr><td class="co">House occupancy</td><td class="reason">Race condition · coordination ngắn hạn</td><td><strong>Demo 1</strong></td></tr>
-            <tr><td class="co">Hero / building config</td><td class="reason">Flexible schema · nested · evolve nhanh</td><td><strong>Demo 2</strong></td></tr>
-            <tr><td class="co">PvP season ranking</td><td class="reason">Read model realtime + settlement đúng tuyệt đối</td><td><strong>Demo 3</strong></td></tr>
-            <tr><td class="co">Admin metrics</td><td class="reason">OLAP · aggregate scan</td><td><strong>Demo 4</strong></td></tr>
-            <tr><td class="co" style="color:var(--muted)">Land NFT · marketplace</td><td class="reason">Transactional truth (nền)</td><td style="color:var(--muted)">—</td></tr>
+            <tr><td class="co">House occupancy</td><td class="reason">Race condition · coordination ngắn hạn</td></tr>
+            <tr><td class="co">Hero / building config</td><td class="reason">Flexible schema · nested · evolve nhanh</td></tr>
+            <tr><td class="co">PvP season ranking</td><td class="reason">Read model realtime + settlement đúng tuyệt đối</td></tr>
+            <tr><td class="co">Admin metrics</td><td class="reason">OLAP · aggregate scan</td></tr>
+            <tr><td class="co" style="color:var(--muted)">Land NFT · marketplace</td><td class="reason">Transactional truth (nền)</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- 12 · PHASE 3 — SQL FAMILY -->
+    <!-- 7 · PHASE 3 — SQL FAMILY -->
     <section>
       <div class="slide-body">
         <div class="eyebrow">SQL FAMILY</div>
@@ -235,7 +151,7 @@
       </div>
     </section>
 
-    <!-- 13 · PHASE 3 — NoSQL FAMILY -->
+    <!-- 8 · PHASE 3 — NoSQL FAMILY -->
     <section>
       <div class="slide-body">
         <div class="eyebrow">NoSQL FAMILY</div>
@@ -255,7 +171,7 @@
       </div>
     </section>
 
-    <!-- 14 · PHASE 3 — TWO GOTCHAS -->
+    <!-- 9 · PHASE 3 — TWO GOTCHAS -->
     <section>
       <div class="slide-body">
         <div class="eyebrow">TWO GOTCHAS</div>
@@ -273,7 +189,7 @@
       </div>
     </section>
 
-    <!-- 15 · PHASE 3 — 4 REPRESENTATIVES (narrow down → demos) -->
+    <!-- 10 · PHASE 3 — 4 REPRESENTATIVES (narrow down → demos) -->
     <section>
       <div class="slide-body">
         <div class="eyebrow">THE 4 WE BENCHMARK</div>
