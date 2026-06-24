@@ -36,3 +36,38 @@ services:
       interval: 3s
       timeout: 5s
       retries: 20
+
+  # Demo 4 — OLAP columnar. ClickHouse (server riêng → DataGrip nối native, view data tận tay).
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment:
+      CLICKHOUSE_USER: pixi
+      CLICKHOUSE_PASSWORD: pixi
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1   # user pixi truy cập từ mọi network (host/DataGrip)
+    ports:
+      - "58123:8123"   # HTTP (driver @clickhouse/client + DataGrip)
+      - "59000:9000"   # native TCP (DataGrip ClickHouse native)
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  # Demo 5 — wide-column. ScyllaDB (CQL/Cassandra-compatible, C++ shard-per-core).
+  # developer-mode tắt vài check IO/durability cho laptop → số minh hoạ, không phải production.
+  scylla:
+    image: scylladb/scylla:6.2
+    command: --smp 2 --memory 2G --overprovisioned 1 --developer-mode 1 --skip-wait-for-gossip-to-settle 0
+    ports:
+      - "59042:9042"
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe cluster' >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 40
+      start_period: 30s

@@ -21,11 +21,20 @@
     "demo:1:redis": "tsx demos/01-house-contention/index.ts redis",
     "demo:1:all": "tsx demos/01-house-contention/index.ts all",
     "demo:2": "tsx demos/02-hero-config/index.ts",
+    "demo:2:seed": "tsx demos/02-hero-config/seed.ts",
+    "demo:2:layer1": "tsx demos/02-hero-config/layer1.ts",
+    "demo:2:layer2": "tsx demos/02-hero-config/layer2.ts",
+    "demo:2:lock": "tsx demos/02-hero-config/lock-proof.ts",
     "demo:3": "tsx demos/03-leaderboard/index.ts",
-    "demo:4": "tsx demos/04-analytics/index.ts"
+    "demo:4": "tsx demos/04-analytics/index.ts",
+    "demo:5": "tsx demos/05-match-history/index.ts all",
+    "demo:5:seed": "tsx demos/05-match-history/index.ts seed",
+    "demo:5:read": "tsx demos/05-match-history/index.ts read",
+    "demo:5:contract": "tsx demos/05-match-history/index.ts contract"
   },
   "dependencies": {
-    "@duckdb/node-api": "^1.5.4-r.1",
+    "@clickhouse/client": "^1.22.0",
+    "cassandra-driver": "^4.7.2",
     "cli-table3": "^0.6.5",
     "ioredis": "^5.4.1",
     "mongodb": "^6.21.0",
