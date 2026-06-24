@@ -1,6 +1,6 @@
 # Demo 3 — Leaderboard realtime (12–15 phút)
 
-← [Demo 2](02-hero-config.md) · [Index](README.md) · Demo 4 → [Analytics](04-analytics.md)
+← [Demo 2](02-hero-config.md) · [Index](README.md) · Demo 4 → [Match history](04-match-history.md)
 
 **Trục:** read model vs truth → "Redis đọc nhanh hơn 200x?" → **busted** (PG có index ngang Redis) → Redis thắng *write throughput* + tách OLTP → pattern read-model-vs-truth.
 
@@ -22,4 +22,4 @@ npm run demo:3   # 100K update + top-10 đọc (idle & dưới spike) · Postgre
 
 **Quyết định "perfect":** đây là demo dễ "xẹp" vì read bị busted — **đừng bán tốc độ đọc**, bán **write throughput + tách OLTP + read-model-vs-truth**. Trung thực về việc PG ngang Redis tăng độ tin cậy.
 
-**Câu nối → Demo 4:** "Demo 3 tách *read model* khỏi *truth*. Demo 4 tách *analytics* khỏi *transaction*."
+**Câu nối → Demo 4:** "Demo 3 là *read model* phục vụ đọc. Tiếp theo: ghi **lịch sử trận** — write-heavy ở quy mô lớn (wide-column)."

@@ -4,7 +4,7 @@ Hướng dẫn cho Claude Code khi làm việc trong repo này.
 
 ## Dự án là gì
 
-Đây là repo phục vụ một **buổi tech talk nội bộ**: *"SQL vs NoSQL — chọn storage theo workload, consistency và scale"*, dùng case study **Pixiland** (game GameFi, 1M user / 50K DAU). Mục tiêu cuối là đứng trình bày được + chạy demo thật.
+Đây là repo phục vụ một **buổi tech talk nội bộ**: *"SQL vs NoSQL — chọn storage theo workload, consistency và scale"*, dùng case study **một live game platform** (1M user / 50K DAU). Mục tiêu cuối là đứng trình bày được + chạy demo thật.
 
 Repo gồm 3 phần, làm theo thứ tự:
 
@@ -29,8 +29,8 @@ Repo gồm 3 phần, làm theo thứ tự:
 - **PostgreSQL** — transactional truth, ACID, JSONB cho flexible config
 - **Redis** — coordination ngắn hạn (SET NX), read model (Sorted Set)
 - **MongoDB** — document model, so sánh với JSONB
-- **ClickHouse** — OLAP columnar server, aggregate scan/analytics (Demo 4); DuckDB là lựa chọn in-process nhẹ hơn cùng họ
-- **ScyllaDB** — wide-column (CQL/Cassandra-compatible), write-heavy append + partition read (Demo 5)
+- **ClickHouse** — OLAP columnar server, aggregate scan/analytics (Demo 5); DuckDB là lựa chọn in-process nhẹ hơn cùng họ
+- **ScyllaDB** — wide-column (CQL/Cassandra-compatible), write-heavy append + partition read (Demo 4)
 
 ## Cấu trúc repo (đề xuất — tạo dần khi làm)
 
@@ -48,7 +48,8 @@ Repo gồm 3 phần, làm theo thứ tự:
     ├── 01-house-contention/   # Demo 1 — race condition
     ├── 02-hero-config/        # Demo 2 — schema / JSONB / Mongo
     ├── 03-leaderboard/        # Demo 3 — Redis Sorted Set vs Postgres
-    └── 04-analytics/          # Demo 4 — ClickHouse vs Postgres OLAP
+    ├── 04-match-history/      # Demo 4 — wide-column ScyllaDB vs Postgres
+    └── 05-analytics/          # Demo 5 — ClickHouse vs Postgres OLAP
 ```
 
 Mỗi demo nên có `npm run demo:1` ... `demo:5` để chạy nhanh khi đứng nói.
@@ -69,7 +70,7 @@ Mỗi demo nên có `npm run demo:1` ... `demo:5` để chạy nhanh khi đứng
 
 ## Design system (slide — `presentation/`)
 
-Hướng **Pixel / GameFi (disciplined)**. Token gốc nằm ở đầu `presentation/theme.css` — Phase sau bám file này, đừng đặt màu/font rời.
+Hướng **Pixel / Game (disciplined)**. Token gốc nằm ở đầu `presentation/theme.css` — Phase sau bám file này, đừng đặt màu/font rời.
 
 - **Màu:** nền `--bg #161426` (tối, không đen tuyền) · brand `--accent #FFC53D` (coin gold). Mỗi DB một màu signature dùng xuyên deck: Postgres `#3D9BE9` · Redis `#E5484D` · MongoDB `#13AA52` · ScyllaDB `#8A6BFF` · ClickHouse `#FF8C42` (phụ: DuckDB `#F2C94C`/MySQL/Cassandra/Oracle).
 - **Font 3 vai trò:** Be Vietnam Pro 800 (tiêu đề VN) · JetBrains Mono (body/data) · Press Start 2P (accent).
@@ -81,7 +82,7 @@ Hướng **Pixel / GameFi (disciplined)**. Token gốc nằm ở đầu `present
 
 - [x] Kịch bản — bản nháp đầy đủ, đang tinh chỉnh (Phase 1 đã viết lại theo hướng "câu hỏi sai" + có timing chi tiết).
 - [x] Slide reveal.js — **toàn bộ buổi xong** (`presentation/`: 46 slide). Benchmark Demo 1–5 dùng cơ chế **"Đo, đừng đoán"**: slide chỉ ghi **KY VONG** (banner myth + bảng số dự đoán, đều là kỳ vọng) — **KHÔNG pre-bake số thật, KHÔNG verdict-box**. Số thật chạy **live ở terminal** rồi đối chiếu với kỳ vọng trên slide (confirm/bust diễn ra bằng lời lúc đứng nói). Spine gài ở Hook (thesis) + slide payoff "Đo, đừng đoán" trước Closing (phần lớn demo khác trực giác).
-- [x] Demo code — **Demo 1–5 chạy thật** (`docker-compose` + `demos/0X`, tsx). `npm run db:up` rồi `npm run demo:1..5`. Demo 5 dùng ScyllaDB (wide-column) — container nặng, khởi động chậm.
+- [x] Demo code — **Demo 1–5 chạy thật** (`docker-compose` + `demos/0X`, tsx). `npm run db:up` rồi `npm run demo:1..5`. Demo 4 dùng ScyllaDB (wide-column) — container nặng, khởi động chậm.
   - Số thật đã chỉnh lại 2 narrative cho trung thực: Demo 1 (FOR UPDATE không phải chậm nhất ở scale này), Demo 3 (PG có index đọc top-N ngang Redis — Redis thắng ở write throughput + tách OLTP, không phải "đọc 200x"). Demo 2 & 4 số thật khớp narrative cũ.
 
 ## Lưu ý môi trường

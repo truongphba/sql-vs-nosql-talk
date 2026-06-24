@@ -1,6 +1,6 @@
-// Demo 4 — Analytics: OLTP (PostgreSQL, row store) vs OLAP (ClickHouse, columnar server).
+// Demo 5 — Analytics: OLTP (PostgreSQL, row store) vs OLAP (ClickHouse, columnar server).
 // Cùng ~5M battle_log rows, chạy aggregate scan giống nhau → so tốc độ engine.
-// ClickHouse là server riêng → DataGrip nối native xem data tận tay (demos/04-analytics/queries.sql).
+// ClickHouse là server riêng → DataGrip nối native xem data tận tay (demos/05-analytics/queries.sql).
 import type { Pool } from "pg";
 import type { ClickHouseClient } from "@clickhouse/client";
 import { makePool } from "../../src/db/pg";
@@ -100,7 +100,7 @@ async function main(): Promise<void> {
       dim(
         `\n* ClickHouse (columnar) thắng rõ ở aggregate scan. Điểm kiến trúc: tách analytics khỏi OLTP\n` +
           `  để query nặng không tranh CPU/IO với transaction người đang chơi.\n` +
-          `  Xem data tận tay: DataGrip → ClickHouse (localhost:58123) · demos/04-analytics/queries.sql\n`,
+          `  Xem data tận tay: DataGrip → ClickHouse (localhost:58123) · demos/05-analytics/queries.sql\n`,
       ),
     );
   } finally {

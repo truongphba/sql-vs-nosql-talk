@@ -1,12 +1,12 @@
-// Demo 5 — Match history / activity feed (WIDE-COLUMN: ScyllaDB vs PostgreSQL)
+// Demo 4 — Match history / activity feed (WIDE-COLUMN: ScyllaDB vs PostgreSQL)
 // Mỗi trận PvP sinh 1 event, append-only. Cần "50 trận gần nhất của player X" realtime + ghi cực nhiều.
 // ScyllaDB = CQL/Cassandra-compatible, C++ shard-per-core (đúng cái Discord dừng lại — xem Hook).
 //
 // Live talk — từng phần:
-//   npm run demo:5:seed      # ghi N event vào cả 2 (đo write throughput)
-//   npm run demo:5:read      # "last 50 của player X" — partition read
-//   npm run demo:5:contract  # query-first contract: ad-hoc / JOIN Scylla không làm được
-//   npm run demo:5           # cả ba
+//   npm run demo:4:seed      # ghi N event vào cả 2 (đo write throughput)
+//   npm run demo:4:read      # "last 50 của player X" — partition read
+//   npm run demo:4:contract  # query-first contract: ad-hoc / JOIN Scylla không làm được
+//   npm run demo:4           # cả ba
 //
 // Trung thực: chạy 1 NODE. Throughput 1 node của Scylla mạnh (shard-per-core) nhưng
 // thế mạnh THẬT là scale-out tuyến tính nhiều node + HA — KHÔNG demo được trên 1 container.
@@ -127,7 +127,7 @@ async function assertSeeded(client: Client): Promise<boolean> {
   } catch {
     /* keyspace/table chưa có */
   }
-  console.log(bad("  Chưa seed — chạy `npm run demo:5:seed` trước."));
+  console.log(bad("  Chưa seed — chạy `npm run demo:4:seed` trước."));
   return false;
 }
 
@@ -174,7 +174,7 @@ async function main(): Promise<void> {
       await contract(pool, scylla);
     }
 
-    console.log(dim(`\n  SQL/CQL chạy tay (DataGrip): demos/05-match-history/queries.cql`));
+    console.log(dim(`\n  SQL/CQL chạy tay (DataGrip): demos/04-match-history/queries.cql`));
   } finally {
     await pool.end();
     await scylla.shutdown();

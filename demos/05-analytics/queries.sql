@@ -1,9 +1,9 @@
 -- ============================================================================
--- Demo 4 — Analytics (OLAP) · chạy tay (DataGrip)
+-- Demo 5 — Analytics (OLAP) · chạy tay (DataGrip)
 --   ClickHouse → data source ClickHouse, host localhost (HTTP 58123 hoặc native 59000),
 --                user "default", no password, database "default".
 --   PostgreSQL → data source Postgres, database pixiland.
--- Chạy `npm run demo:4` trước để seed 5M battle_logs vào CẢ HAI.
+-- Chạy `npm run demo:5` trước để seed 5M battle_logs vào CẢ HAI.
 -- ============================================================================
 
 

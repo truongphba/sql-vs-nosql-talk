@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SQL vs NoSQL — Pixiland Tech Talk</title>
+  <title>SQL vs NoSQL — Tech Talk</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -98,19 +98,19 @@
       </div>
     </section>
 
-    <!-- 5 · PHASE 2 — PIXILAND CONTEXT -->
+    <!-- 5 · PHASE 2 — CASE STUDY CONTEXT -->
     <section>
       <div class="slide-body">
         <div class="eyebrow">CASE STUDY</div>
-        <h2>Pixiland — Live GameFi</h2>
+        <h2>Live game platform</h2>
         <div class="stats">
           <div class="stat"><div class="num">1M</div><div class="lbl">User</div></div>
           <div class="stat"><div class="num">50K</div><div class="lbl">DAU</div></div>
         </div>
         <ul class="feat-list">
-          <li>Xây làng · land NFT · building system</li>
+          <li>Xây làng · đất/nhà · building system</li>
           <li>Hero collection — PvP / PvE dungeon</li>
-          <li>NFT marketplace qua Ronin</li>
+          <li>Marketplace vật phẩm giữa người chơi</li>
           <li>House occupancy — 1 user / 1 thời điểm</li>
           <li>Event spike: đua top PvE, mining pools</li>
         </ul>
@@ -130,7 +130,7 @@
             <tr><td class="co">PvP season ranking</td><td class="reason">Read model realtime + settlement đúng tuyệt đối</td></tr>
             <tr><td class="co">Match history / feed</td><td class="reason">Write-heavy append · đọc theo partition key · scale ngang</td></tr>
             <tr><td class="co">Admin metrics</td><td class="reason">OLAP · aggregate scan</td></tr>
-            <tr><td class="co" style="color:var(--muted)">Land NFT · marketplace</td><td class="reason">Transactional truth (nền)</td></tr>
+            <tr><td class="co" style="color:var(--muted)">Mua bán vật phẩm / inventory</td><td class="reason">Transactional truth (nền)</td></tr>
           </tbody>
         </table>
       </div>
@@ -485,7 +485,76 @@
     <section>
       <div class="slide-body center">
         <div class="phase-num">D4</div>
-        <div class="eyebrow">DEMO 4 · ANALYTICS</div>
+        <div class="eyebrow">DEMO 4 · WIDE-COLUMN</div>
+        <h1>Match history</h1>
+        <p class="big" style="max-width:30ch">Append-only · ghi cực nhiều · đọc theo player. Đúng họ <strong>Discord</strong> ở Hook.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">2 APPROACHES</div>
+        <h3 style="margin-bottom:0.5em">Lưu match history — 2 cách</h3>
+        <div class="cards c2">
+          <div class="acard" style="--c:var(--pg)">
+            <h4>PostgreSQL</h4>
+            <div class="sub">bảng + index (player_id, time)</div>
+            <ul class="pc">
+              <li class="ok">Query bất kỳ: JOIN · ad-hoc · thêm index tuỳ ý</li>
+              <li class="ok">last-50 nhanh nhờ index</li>
+              <li class="no">Write throughput trần 1 node (B-tree + WAL)</li>
+            </ul>
+          </div>
+          <div class="acard" style="--c:var(--scylla)">
+            <h4>ScyllaDB <span style="font-size:0.6em; color:var(--muted)">(wide-column)</span></h4>
+            <div class="sub">PK ((player_id), match_time)</div>
+            <ul class="pc">
+              <li class="ok">Write cao (LSM, shard-per-core) + scale-out tuyến tính</li>
+              <li class="ok">Partition read phẳng — clustering sort sẵn</li>
+              <li class="no">No JOIN, no ad-hoc — query-first, mỗi pattern 1 bảng</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">BENCHMARK · KY VONG</div>
+        <h3 style="margin-bottom:0.4em">200K event · write vs read vs ad-hoc</h3>
+        <div class="guess"><b>KY VONG</b><span class="myth">ScyllaDB nhanh hơn Postgres mọi mặt (write + read + ad-hoc)</span></div>
+        <table class="ctable">
+          <thead><tr><th>OPERATION</th><th>POSTGRESQL</th><th>SCYLLADB</th></tr></thead>
+          <tbody class="fragment">
+            <tr class="hl"><td class="co">Write 200K event</td><td class="reason">~4s</td><td class="reason" style="color:var(--mongo)">~1.5s nhanh hơn</td></tr>
+            <tr><td class="co">last-50 partition read</td><td class="reason">~2ms</td><td class="reason" style="color:var(--mongo)">~0.3ms nhanh hơn</td></tr>
+            <tr><td class="co">Ad-hoc theo opponent</td><td class="reason">~chậm</td><td class="reason" style="color:var(--mongo)">~nhanh hơn</td></tr>
+          </tbody>
+        </table>
+        <div class="note">KY VONG · SO THAT CHAY O TERMINAL (demo:4) · 1 NODE + DEV-MODE</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">RIGHT PATTERN · TAKEAWAY</div>
+        <h3 style="margin-bottom:0.4em">Wide-column = hợp đồng khác, không phải "nhanh hơn"</h3>
+        <ul class="pick">
+          <li>Đổi <strong>JOIN + ad-hoc query</strong> → lấy <strong>write scale-out tuyến tính + partition read phẳng</strong></li>
+          <li class="acc">Query-first: thiết kế bảng theo query, mỗi access pattern = 1 bảng (denormalize, ghi nhiều lần)</li>
+          <li>1 node chỉ thấy write nhanh; <strong>scale-out nhiều node + HA</strong> mới là lý do Discord chọn (nghìn tỷ message)</li>
+        </ul>
+        <div class="takeaway" style="margin-top:0.7em; font-size:21px; padding:16px 22px">
+          <strong>Scylla/Cassandra</strong> khi biết TRƯỚC access pattern + cần scale ngang · <strong>Postgres</strong> khi cần query linh hoạt, 1 node là đủ.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DEMO 5 ============ -->
+    <section>
+      <div class="slide-body center">
+        <div class="phase-num">D5</div>
+        <div class="eyebrow">DEMO 5 · ANALYTICS</div>
         <h1>Admin analytics</h1>
         <p class="big" style="max-width:30ch">DAU · win rate · region · 50–100 triệu battle log rows</p>
       </div>
@@ -544,75 +613,6 @@
         </ul>
         <div class="takeaway" style="margin-top:0.8em; font-size:21px; padding:18px 22px">
           Tách OLAP khỏi OLTP là <strong>quyết định kiến trúc</strong>, không phải tối ưu performance — tách cả compute lẫn đường lấy data.
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ DEMO 5 ============ -->
-    <section>
-      <div class="slide-body center">
-        <div class="phase-num">D5</div>
-        <div class="eyebrow">DEMO 5 · WIDE-COLUMN</div>
-        <h1>Match history</h1>
-        <p class="big" style="max-width:30ch">Append-only · ghi cực nhiều · đọc theo player. Đúng họ <strong>Discord</strong> ở Hook.</p>
-      </div>
-    </section>
-
-    <section>
-      <div class="slide-body">
-        <div class="eyebrow">2 APPROACHES</div>
-        <h3 style="margin-bottom:0.5em">Lưu match history — 2 cách</h3>
-        <div class="cards c2">
-          <div class="acard" style="--c:var(--pg)">
-            <h4>PostgreSQL</h4>
-            <div class="sub">bảng + index (player_id, time)</div>
-            <ul class="pc">
-              <li class="ok">Query bất kỳ: JOIN · ad-hoc · thêm index tuỳ ý</li>
-              <li class="ok">last-50 nhanh nhờ index</li>
-              <li class="no">Write throughput trần 1 node (B-tree + WAL)</li>
-            </ul>
-          </div>
-          <div class="acard" style="--c:var(--scylla)">
-            <h4>ScyllaDB <span style="font-size:0.6em; color:var(--muted)">(wide-column)</span></h4>
-            <div class="sub">PK ((player_id), match_time)</div>
-            <ul class="pc">
-              <li class="ok">Write cao (LSM, shard-per-core) + scale-out tuyến tính</li>
-              <li class="ok">Partition read phẳng — clustering sort sẵn</li>
-              <li class="no">No JOIN, no ad-hoc — query-first, mỗi pattern 1 bảng</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="slide-body">
-        <div class="eyebrow">BENCHMARK · KY VONG</div>
-        <h3 style="margin-bottom:0.4em">200K event · write vs read vs ad-hoc</h3>
-        <div class="guess"><b>KY VONG</b><span class="myth">ScyllaDB nhanh hơn Postgres mọi mặt (write + read + ad-hoc)</span></div>
-        <table class="ctable">
-          <thead><tr><th>OPERATION</th><th>POSTGRESQL</th><th>SCYLLADB</th></tr></thead>
-          <tbody class="fragment">
-            <tr class="hl"><td class="co">Write 200K event</td><td class="reason">~4s</td><td class="reason" style="color:var(--mongo)">~1.5s nhanh hơn</td></tr>
-            <tr><td class="co">last-50 partition read</td><td class="reason">~2ms</td><td class="reason" style="color:var(--mongo)">~0.3ms nhanh hơn</td></tr>
-            <tr><td class="co">Ad-hoc theo opponent</td><td class="reason">~chậm</td><td class="reason" style="color:var(--mongo)">~nhanh hơn</td></tr>
-          </tbody>
-        </table>
-        <div class="note">KY VONG · SO THAT CHAY O TERMINAL (demo:5) · 1 NODE + DEV-MODE</div>
-      </div>
-    </section>
-
-    <section>
-      <div class="slide-body">
-        <div class="eyebrow">RIGHT PATTERN · TAKEAWAY</div>
-        <h3 style="margin-bottom:0.4em">Wide-column = hợp đồng khác, không phải "nhanh hơn"</h3>
-        <ul class="pick">
-          <li>Đổi <strong>JOIN + ad-hoc query</strong> → lấy <strong>write scale-out tuyến tính + partition read phẳng</strong></li>
-          <li class="acc">Query-first: thiết kế bảng theo query, mỗi access pattern = 1 bảng (denormalize, ghi nhiều lần)</li>
-          <li>1 node chỉ thấy write nhanh; <strong>scale-out nhiều node + HA</strong> mới là lý do Discord chọn (nghìn tỷ message)</li>
-        </ul>
-        <div class="takeaway" style="margin-top:0.7em; font-size:21px; padding:16px 22px">
-          <strong>Scylla/Cassandra</strong> khi biết TRƯỚC access pattern + cần scale ngang · <strong>Postgres</strong> khi cần query linh hoạt, 1 node là đủ.
         </div>
       </div>
     </section>
@@ -730,7 +730,7 @@
           </div>
           <div class="acard" style="--c:var(--accent)">
             <h4>2 · Consistency cần gì?</h4>
-            <div class="map">Mất tiền / NFT → <b>ACID, Postgres</b></div>
+            <div class="map">Mất tiền / vật phẩm → <b>ACID, Postgres</b></div>
             <div class="map">Rank lệch vài giây → <b>eventual, Redis</b></div>
             <div class="map">Report hơi cũ → <b>batch sync, ClickHouse</b></div>
           </div>
@@ -753,11 +753,11 @@
     <section>
       <div class="slide-body">
         <div class="eyebrow">STEP 3 · PICK</div>
-        <h3 style="margin-bottom:0.4em">Câu hỏi → DB → ví dụ Pixiland</h3>
+        <h3 style="margin-bottom:0.4em">Câu hỏi → DB → ví dụ trong game</h3>
         <table class="ctable dense">
           <thead><tr><th>QUESTION</th><th>PICK</th><th>PIXILAND</th></tr></thead>
           <tbody>
-            <tr><td class="co">ACID / source of truth?</td><td><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL</td><td class="reason">user, wallet, NFT, battle result</td></tr>
+            <tr><td class="co">ACID / source of truth?</td><td><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL</td><td class="reason">user, ví in-game, vật phẩm, kết quả trận</td></tr>
             <tr><td class="co">Coordination ngắn hạn?</td><td><span class="dbdot" style="background:var(--redis)"></span>Redis</td><td class="reason">house lock, cooldown, rate limit</td></tr>
             <tr><td class="co">Realtime rank / read model?</td><td><span class="dbdot" style="background:var(--redis)"></span>Redis Sorted Set</td><td class="reason">PvP leaderboard display</td></tr>
             <tr><td class="co">Aggregate scan / analytics?</td><td><span class="dbdot" style="background:var(--click)"></span>ClickHouse / DuckDB</td><td class="reason">dashboard, win rate, DAU</td></tr>
@@ -775,7 +775,7 @@
         <table class="ctable dense">
           <thead><tr><th>ENGINE</th><th>USED FOR</th><th>ROLE</th></tr></thead>
           <tbody>
-            <tr><td class="co"><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL</td><td class="reason">user, wallet, NFT, battle result</td><td>transactional truth</td></tr>
+            <tr><td class="co"><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL</td><td class="reason">user, ví in-game, vật phẩm, kết quả trận</td><td>transactional truth</td></tr>
             <tr><td class="co"><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL JSONB</td><td class="reason">hero config, building config</td><td>flexible truth</td></tr>
             <tr><td class="co"><span class="dbdot" style="background:var(--redis)"></span>Redis</td><td class="reason">house lock, resource counter</td><td>coordination</td></tr>
             <tr><td class="co"><span class="dbdot" style="background:var(--redis)"></span>Redis Sorted Set</td><td class="reason">PvP leaderboard display</td><td>read model</td></tr>

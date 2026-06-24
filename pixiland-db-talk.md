@@ -1,12 +1,12 @@
 # SQL vs NoSQL — Chọn storage theo workload, consistency và scale
-> Pixiland Case Study · Tech Talk
+> SQL vs NoSQL · Tech Talk
 
 ---
 
 ## Thông tin buổi chia sẻ
 
 - **Chủ đề:** SQL vs NoSQL — chọn storage theo workload, consistency và scale
-- **Bối cảnh:** Live GameFi platform — Pixiland (1M users, 50K DAU)
+- **Bối cảnh:** Live game platform — một game online thật (1M users, 50K DAU)
 - **Định dạng:** Bài toán → Thiết kế → Benchmark → Scale bottleneck → Takeaway
 - **DB cover:** PostgreSQL · MongoDB · Redis · ScyllaDB · ClickHouse
 - **Slide mở đầu:** đặt câu hỏi tranh luận "SQL hay NoSQL — cái nào thật sự tốt hơn?", dùng badge đại diện rộng hơn cho landscape: PostgreSQL · MySQL · MongoDB · Redis · Cassandra · ClickHouse.
@@ -61,31 +61,31 @@ Khoảng lặng 10–15 giây để mọi người đoán lý do. Sau đó revea
 
 → Phá tư duy "chọn 1 DB cho cả hệ thống" — đây chính là cái mở đường cho 4 demo, mỗi demo một layer.
 
-### Bước 4 — Chuyển sang Pixiland (3:45–5:00)
+### Bước 4 — Chuyển sang case study (3:45–5:00)
 
 Không dùng slide thesis/bridge riêng nữa. Chốt bằng lời ngay sau twist Instagram:
 
-> "Vậy từ giờ đừng hỏi 'dùng DB nào cho cả hệ thống'. Hỏi phần này là truth, feed/cache, coordination hay analytics. Hôm nay ta làm điều đó trên một hệ thống thật — Pixiland, một game GameFi 1 triệu user. Trong cùng một game, mình sẽ gặp đủ mọi loại workload vừa nói tới."
+> "Vậy từ giờ đừng hỏi 'dùng DB nào cho cả hệ thống'. Hỏi phần này là truth, feed/cache, coordination hay analytics. Hôm nay ta làm điều đó trên một hệ thống thật — một live game platform 1 triệu user. Trong cùng một game, mình sẽ gặp đủ mọi loại workload vừa nói tới."
 >
 > "Và một nguyên tắc xuyên suốt hôm nay: **đo, đừng đoán.** Mỗi demo mình sẽ đoán trước rồi chạy thật."
 
 > **Ghi chú độ chính xác (kẻo bị bắt bẻ):**
 > - Instagram: nói "data quan hệ chặt, cần consistency" — tránh nói "JOIN phức tạp" (Instagram shard Postgres và *tránh* cross-shard join).
-> - Discord: con số là minh hoạ — nói "hàng tỷ message" thay vì cam kết "4 tỷ/ngày". Slide dùng **ScyllaDB** (đúng nơi Discord dừng lại, và là DB của Demo 5); nếu hỏi sâu lộ trình: Discord đi MongoDB → Cassandra → ScyllaDB. Cassandra là trạm giữa đường, Scylla là đích — nên Hook chốt thẳng Scylla để khớp callback ở Demo 5.
+> - Discord: con số là minh hoạ — nói "hàng tỷ message" thay vì cam kết "4 tỷ/ngày". Slide dùng **ScyllaDB** (đúng nơi Discord dừng lại, và là DB của Demo 4); nếu hỏi sâu lộ trình: Discord đi MongoDB → Cassandra → ScyllaDB. Cassandra là trạm giữa đường, Scylla là đích — nên Hook chốt thẳng Scylla để khớp callback ở Demo 4.
 > - Home Feed trên slide dùng "Redis / feed cache" vì nguồn public cũ về Instagram stack có nhắc Redis cho fast feeds. Không khẳng định kiến trúc hiện tại của Instagram vẫn y nguyên; mục tiêu là phân biệt source of truth quan hệ với cache/read model phục vụ đọc nhanh.
 
 ---
 
 ## Phase 2 — Bối cảnh case study (5–7 phút)
 
-### Pixiland — Live GameFi Platform
+### Live game platform — case study
 
 **Quy mô:** 1 triệu User · 50K DAU
 
 **Tính năng chính:**
-- Xây làng, land NFT, building system
+- Xây làng, đất & nhà, building system
 - Hero collection — PvP dungeon, PvE dungeon
-- NFT marketplace qua Ronin (không mint trong game)
+- Marketplace mua bán vật phẩm giữa người chơi
 - House occupancy — 1 user khai thác tại 1 thời điểm
 - Event spike: đua top PvE, mining pools
 
@@ -100,7 +100,7 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 | PvP season ranking | Read model realtime + settlement đúng tuyệt đối |
 | Match history / activity feed | Write-heavy append-only · đọc theo partition key · scale ngang |
 | Admin metrics (DAU, win rate…) | OLAP · aggregate scan |
-| Land NFT · marketplace (Ronin) | Transactional truth (nền) |
+| Mua bán vật phẩm / inventory | Transactional truth (nền) |
 
 **Thông điệp:** Cùng một game — nhiều loại workload dữ liệu khác nhau, không có DB nào phù hợp cho tất cả.
 
@@ -138,15 +138,15 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 
 ### 4 đại diện sẽ benchmark hôm nay
 
-> Từ cả bản đồ trên, đây là 4 cái ta sẽ chạy demo thật hôm nay — mỗi cái đại diện cho một workload chính của Pixiland.
+> Từ cả bản đồ trên, đây là 4 cái ta sẽ chạy demo thật hôm nay — mỗi cái đại diện cho một workload chính của game.
 
 | DB | Họ | Vai trò |
 |---|---|---|
 | **PostgreSQL** | Relational SQL | ACID, JOIN, index, transactional truth |
 | **MongoDB** | Document | Schema-flexible, nested object, evolve nhanh |
 | **Redis** | Key-Value / data-structure | In-memory, atomic, TTL, Sorted Set |
-| **ScyllaDB** | Wide-column | Write-heavy append, partition read, scale-out (Demo 5) |
-| **ClickHouse** | OLAP Columnar | Aggregate scan, analytics, columnar server (Demo 4) |
+| **ScyllaDB** | Wide-column | Write-heavy append, partition read, scale-out (Demo 4) |
+| **ClickHouse** | OLAP Columnar | Aggregate scan, analytics, columnar server (Demo 5) |
 
 > Buổi này không cover hết — Wide-column, Graph, Search… sẽ được nhắc khi liên quan.
 
@@ -159,10 +159,10 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 | 1 House | `pixiland` · bảng `houses` | key `house:1` | — |
 | 2 Hero config | `pixiland_norm` + `pixiland_jsonb` (2 DB riêng) | — | DB `pixiland` · `users` / `wallets` / `heroes` |
 | 3 Leaderboard | `pixiland` · bảng `leaderboard` | key `lb` | — |
-| 4 Analytics | `pixiland` · `battle_logs` | — | — |
-| 5 Match history | `pixiland` · `matches` | — | — |
+| 4 Match history | `pixiland` · `matches` | — | — |
+| 5 Analytics | `pixiland` · `battle_logs` | — | — |
 
-> Demo 4 thêm **ClickHouse** (container, DB `default` · bảng `battle_logs`); Demo 5 thêm **ScyllaDB** (container, keyspace `pixiland` · bảng `matches_by_player`). Cả hai là engine riêng, không nằm trong cột Postgres/Redis/Mongo ở trên.
+> Demo 5 thêm **ClickHouse** (container, DB `default` · bảng `battle_logs`); Demo 4 thêm **ScyllaDB** (container, keyspace `pixiland` · bảng `matches_by_player`). Cả hai là engine riêng, không nằm trong cột Postgres/Redis/Mongo ở trên.
 
 **Không xung đột:** demo 1 và 3 dùng chung DB `pixiland` nhưng bảng/key khác nhau; demo 2 tách 2 DB Postgres để so dung lượng embed vs normalized.
 
@@ -429,7 +429,7 @@ Chọn MongoDB khi document là access pattern chính, không phải chỉ vì s
 
 ### Bài toán
 
-PvP season ranking: điểm tăng sau mỗi trận, top 100 hiển thị realtime, cuối season top 10 nhận NFT/token.
+PvP season ranking: điểm tăng sau mỗi trận, top 100 hiển thị realtime, cuối season top 10 nhận phần thưởng (vật phẩm / tiền in-game).
 
 **Hai yêu cầu trông giống nhau nhưng thực ra rất khác:**
 
@@ -510,7 +510,83 @@ mà là "phần nào cần đúng tuyệt đối, phần nào cần nhanh tuyệ
 
 ---
 
-## Demo 4 — Analytics (12–15 phút)
+## Demo 4 — Match history / activity feed (wide-column) (12–15 phút)
+
+### Bài toán
+
+Mỗi trận PvP sinh một event, **append-only** (gần như không sửa). Hai nhu cầu: (1) ghi **cực nhiều** event liên tục, (2) đọc nhanh "**50 trận gần nhất của player X**" cho màn history. Đây đúng họ workload Discord mô tả ở Hook — và Discord dừng lại ở **ScyllaDB** (wide-column).
+
+> Demo này dùng **ScyllaDB** — CQL/Cassandra-compatible nhưng viết bằng C++ (shard-per-core, không JVM). Cùng `cassandra-driver`, cùng mô hình dữ liệu Cassandra; gọn và nhanh hơn để demo.
+
+**Chạy live — từng phần** (Scylla khởi động chậm, `db:up` 1 lần đầu buổi):
+
+```bash
+npm run demo:4:seed      # ghi 200K event vào PG + Scylla (đo write throughput)
+npm run demo:4:read      # "last 50 của player X" — partition read
+npm run demo:4:contract  # query-first contract: ad-hoc Scylla từ chối
+npm run demo:4           # cả ba
+# CQL/SQL chạy tay (DataGrip): demos/04-match-history/queries.cql
+```
+
+### So sánh 2 approach
+
+**PostgreSQL** — `matches(player_id, match_time, …)` + index `(player_id, match_time DESC)`.
+- ✓ Query bất kỳ: JOIN, ad-hoc WHERE, thêm index cho pattern mới — rất linh hoạt
+- ✓ Đọc "last 50" nhanh nhờ index
+- ✗ Write throughput đụng **trần 1 node** (B-tree + WAL/fsync); scale ngang khó
+
+**ScyllaDB (wide-column)** — `PRIMARY KEY ((player_id), match_time, match_id)`, clustering `match_time DESC`.
+- ✓ Write throughput cao (LSM append, shard-per-core), **scale-out tuyến tính** nhiều node + HA multi-DC
+- ✓ Partition read "last 50" = seek 1 partition, đã sort sẵn — phẳng bất kể bảng to
+- ✗ **Query-first contract:** không JOIN, không ad-hoc; query theo cột không phải partition key → **từ chối** (cần `ALLOW FILTERING` = full scan, hoặc tạo bảng denormalized mới, ghi event nhiều lần)
+
+### Benchmark — 200K event (số đo thật, 1 node localhost)
+
+| | PostgreSQL | ScyllaDB |
+|---|---|---|
+| Write 200K event (concurrent, append) | ~3.9s · **~51k/s** | ~1.7s · **~120k/s** |
+| Partition read "last 50 của player X" | ~0.2ms | ~0.3ms |
+| Ad-hoc theo `opponent` (không phải PK) | seq scan ~16ms → **thêm index ~1ms** | **TỪ CHỐI** · ALLOW FILTERING scan ~9ms · hoặc tạo bảng mới |
+
+> **Đo, đừng đoán — KY VONG: "Scylla nhanh hơn Postgres mọi mặt".** Số thật:
+> - **Write: Scylla thắng thật (~2.3x)** trên 1 node — shard-per-core, append-only LSM. Đây là win trung thực.
+> - **Read partition: NGANG nhau** — đừng oversell "NoSQL đọc nhanh hơn"; PG có index đọc top-N ngang Scylla.
+> - **Ad-hoc/JOIN: Scylla THUA** — nó *từ chối* query ngoài partition key. PG chỉ cần thêm 1 index.
+>
+> **Cảnh báo trung thực (kẻo bị bắt bẻ):** demo chạy **1 node + developer-mode** → số minh hoạ. Thế mạnh THẬT của Scylla — **scale-out tuyến tính nhiều node + HA multi-DC** — *không thể demo trên 1 container*; đó mới là lý do Discord chọn nó cho hàng nghìn tỷ message. 1 node chỉ cho thấy *write path nhanh + contract query-first*.
+
+### Pattern đúng — query-first, denormalize có chủ đích
+
+```
+Wide-column: thiết kế BẢNG THEO QUERY, không theo entity.
+  matches_by_player   → đọc theo player (history)
+  matches_by_opponent → đọc theo đối thủ (nếu cần) — GHI EVENT 2 LẦN
+
+Không JOIN, không ad-hoc. Mỗi access pattern = một bảng.
+Đổi flexibility lấy: write throughput + scale ngang tuyến tính + HA.
+```
+
+### Scale bottleneck (DB level)
+
+- **PostgreSQL:** write throughput trần 1 node; phải partition table + (cuối cùng) sharding thủ công khi event vượt sức 1 máy
+- **ScyllaDB:** thêm node → throughput + dung lượng tăng gần tuyến tính (consistent hashing); bottleneck chuyển sang **thiết kế partition key** (hot partition nếu key lệch) và **chi phí denormalize** (mỗi query pattern = 1 bảng + 1 lần ghi)
+
+### Takeaway
+
+```
+Wide-column không "nhanh hơn SQL" — nó là HỢP ĐỒNG KHÁC.
+Đổi: JOIN + ad-hoc query  →  lấy: write scale-out tuyến tính + partition read phẳng.
+
+ScyllaDB/Cassandra → write-heavy, append-only, đọc theo partition key đã biết trước,
+                     cần scale ngang nhiều node (Discord: nghìn tỷ message).
+PostgreSQL         → cần query linh hoạt (JOIN, ad-hoc, index tuỳ ý), scale 1 node là đủ.
+
+Câu hỏi vẫn là access pattern: bạn có biết TRƯỚC mình sẽ query thế nào không?
+```
+
+---
+
+## Demo 5 — Analytics (12–15 phút)
 
 ### Bài toán
 
@@ -568,82 +644,6 @@ PostgreSQL       → OLTP, transaction path, source of truth
 ClickHouse/DuckDB → OLAP, analytics, dashboard — không đụng production
 
 Tách hai layer này ra là quyết định kiến trúc, không phải tối ưu performance.
-```
-
----
-
-## Demo 5 — Match history / activity feed (wide-column) (12–15 phút)
-
-### Bài toán
-
-Mỗi trận PvP sinh một event, **append-only** (gần như không sửa). Hai nhu cầu: (1) ghi **cực nhiều** event liên tục, (2) đọc nhanh "**50 trận gần nhất của player X**" cho màn history. Đây đúng họ workload Discord mô tả ở Hook — và Discord dừng lại ở **ScyllaDB** (wide-column).
-
-> Demo này dùng **ScyllaDB** — CQL/Cassandra-compatible nhưng viết bằng C++ (shard-per-core, không JVM). Cùng `cassandra-driver`, cùng mô hình dữ liệu Cassandra; gọn và nhanh hơn để demo.
-
-**Chạy live — từng phần** (Scylla khởi động chậm, `db:up` 1 lần đầu buổi):
-
-```bash
-npm run demo:5:seed      # ghi 200K event vào PG + Scylla (đo write throughput)
-npm run demo:5:read      # "last 50 của player X" — partition read
-npm run demo:5:contract  # query-first contract: ad-hoc Scylla từ chối
-npm run demo:5           # cả ba
-# CQL/SQL chạy tay (DataGrip): demos/05-match-history/queries.cql
-```
-
-### So sánh 2 approach
-
-**PostgreSQL** — `matches(player_id, match_time, …)` + index `(player_id, match_time DESC)`.
-- ✓ Query bất kỳ: JOIN, ad-hoc WHERE, thêm index cho pattern mới — rất linh hoạt
-- ✓ Đọc "last 50" nhanh nhờ index
-- ✗ Write throughput đụng **trần 1 node** (B-tree + WAL/fsync); scale ngang khó
-
-**ScyllaDB (wide-column)** — `PRIMARY KEY ((player_id), match_time, match_id)`, clustering `match_time DESC`.
-- ✓ Write throughput cao (LSM append, shard-per-core), **scale-out tuyến tính** nhiều node + HA multi-DC
-- ✓ Partition read "last 50" = seek 1 partition, đã sort sẵn — phẳng bất kể bảng to
-- ✗ **Query-first contract:** không JOIN, không ad-hoc; query theo cột không phải partition key → **từ chối** (cần `ALLOW FILTERING` = full scan, hoặc tạo bảng denormalized mới, ghi event nhiều lần)
-
-### Benchmark — 200K event (số đo thật, 1 node localhost)
-
-| | PostgreSQL | ScyllaDB |
-|---|---|---|
-| Write 200K event (concurrent, append) | ~3.9s · **~51k/s** | ~1.7s · **~120k/s** |
-| Partition read "last 50 của player X" | ~0.2ms | ~0.3ms |
-| Ad-hoc theo `opponent` (không phải PK) | seq scan ~16ms → **thêm index ~1ms** | **TỪ CHỐI** · ALLOW FILTERING scan ~9ms · hoặc tạo bảng mới |
-
-> **Đo, đừng đoán — KY VONG: "Scylla nhanh hơn Postgres mọi mặt".** Số thật:
-> - **Write: Scylla thắng thật (~2.3x)** trên 1 node — shard-per-core, append-only LSM. Đây là win trung thực.
-> - **Read partition: NGANG nhau** — đừng oversell "NoSQL đọc nhanh hơn"; PG có index đọc top-N ngang Scylla.
-> - **Ad-hoc/JOIN: Scylla THUA** — nó *từ chối* query ngoài partition key. PG chỉ cần thêm 1 index.
->
-> **Cảnh báo trung thực (kẻo bị bắt bẻ):** demo chạy **1 node + developer-mode** → số minh hoạ. Thế mạnh THẬT của Scylla — **scale-out tuyến tính nhiều node + HA multi-DC** — *không thể demo trên 1 container*; đó mới là lý do Discord chọn nó cho hàng nghìn tỷ message. 1 node chỉ cho thấy *write path nhanh + contract query-first*.
-
-### Pattern đúng — query-first, denormalize có chủ đích
-
-```
-Wide-column: thiết kế BẢNG THEO QUERY, không theo entity.
-  matches_by_player   → đọc theo player (history)
-  matches_by_opponent → đọc theo đối thủ (nếu cần) — GHI EVENT 2 LẦN
-
-Không JOIN, không ad-hoc. Mỗi access pattern = một bảng.
-Đổi flexibility lấy: write throughput + scale ngang tuyến tính + HA.
-```
-
-### Scale bottleneck (DB level)
-
-- **PostgreSQL:** write throughput trần 1 node; phải partition table + (cuối cùng) sharding thủ công khi event vượt sức 1 máy
-- **ScyllaDB:** thêm node → throughput + dung lượng tăng gần tuyến tính (consistent hashing); bottleneck chuyển sang **thiết kế partition key** (hot partition nếu key lệch) và **chi phí denormalize** (mỗi query pattern = 1 bảng + 1 lần ghi)
-
-### Takeaway
-
-```
-Wide-column không "nhanh hơn SQL" — nó là HỢP ĐỒNG KHÁC.
-Đổi: JOIN + ad-hoc query  →  lấy: write scale-out tuyến tính + partition read phẳng.
-
-ScyllaDB/Cassandra → write-heavy, append-only, đọc theo partition key đã biết trước,
-                     cần scale ngang nhiều node (Discord: nghìn tỷ message).
-PostgreSQL         → cần query linh hoạt (JOIN, ad-hoc, index tuỳ ý), scale 1 node là đủ.
-
-Câu hỏi vẫn là access pattern: bạn có biết TRƯỚC mình sẽ query thế nào không?
 ```
 
 ---
@@ -761,7 +761,7 @@ Analytics              → aggregate nặng, scan lớn, offline ok
 - Aggregate scan → OLAP layer riêng
 
 **Câu 2: Consistency level cần là gì?**
-- Sai là mất tiền, mất NFT → ACID, PostgreSQL
+- Sai là mất tiền, mất vật phẩm → ACID, PostgreSQL
 - Sai là hiển thị rank lệch vài giây → eventual ok, Redis
 - Sai là analytics report hơi cũ → batch sync ok, ClickHouse
 
@@ -779,19 +779,19 @@ Analytics              → aggregate nặng, scan lớn, offline ok
 
 ### Bước 3 — Chọn DB
 
-| Câu hỏi | Chọn | Ví dụ trong Pixiland |
+| Câu hỏi | Chọn | Ví dụ trong game |
 |---|---|---|
-| Cần ACID / source of truth? | **PostgreSQL** | user, wallet, NFT, battle result |
+| Cần ACID / source of truth? | **PostgreSQL** | user, vÃ­ in-game, váº­t pháº©m, káº¿t quáº£ tráº­n |
 | Coordination ngắn hạn / atomic? | **Redis** | house lock, cooldown, rate limit |
 | Realtime rank / read model? | **Redis Sorted Set** | PvP leaderboard display |
 | Aggregate scan / analytics? | **ClickHouse / DuckDB** | dashboard, win rate, DAU |
 | Schema nested + cần JOIN? | **Postgres JSONB** | hero config, building config |
 | Document là access pattern chính? | **MongoDB** | khi ít JOIN, đọc nguyên object |
 
-### Pixiland production stack — nhìn toàn cảnh
+### Production stack đề xuất — nhìn toàn cảnh
 
 ```
-PostgreSQL        → user, wallet, NFT, battle result     (transactional truth)
+PostgreSQL        → user, vÃ­ in-game, váº­t pháº©m, káº¿t quáº£ tráº­n     (transactional truth)
 PostgreSQL JSONB  → hero config, building config          (flexible truth)
 Redis             → house lock, resource counter idle     (coordination)
 Redis Sorted Set  → PvP leaderboard display               (read model)
@@ -842,10 +842,10 @@ Không — ScyllaDB là Cassandra-compatible nhưng viết lại bằng C++, lat
 
 Đúng. Message trong Cassandra được lưu theo `message_id` immutable. Khi user edit, Discord không update record cũ mà ghi thêm bản ghi mới với cùng `message_id` — đây là **upsert**, last write wins. Cassandra hỗ trợ upsert tốt vì bản chất write là append vào commit log trước, không lock row. Nên nói chính xác: message là **immutable event** — kể cả edit cũng là ghi version mới, không phải sửa record cũ.
 
-**"Pixiland có cần Graph / Search / Vector DB như slide không?"**
+**"Game này có cần Graph / Search / Vector DB như slide không?"**
 
 Chưa — nhưng đó là lúc chúng xuất hiện *nếu* workload tới:
-- **Graph** (Neo4j…): friend/guild network sâu, đề xuất "bạn của bạn", phát hiện gian lận chuỗi giao dịch NFT.
+- **Graph** (Neo4j…): friend/guild network sâu, đề xuất "bạn của bạn", phát hiện gian lận chuỗi giao dịch / hành vi bất thường.
 - **Search** (Elasticsearch…): marketplace cần full-text + filter phức tạp trên item/hero.
 - **Vector** (pgvector…): khi thêm AI — gợi ý hero/loadout theo similarity, semantic search.
 
@@ -866,16 +866,16 @@ Nguyên tắc vẫn vậy: thêm khi workload thật xuất hiện, không phả
 | Phase | Nội dung | Thời gian |
 |---|---|---|
 | 1 | Hook — nghịch lý cùng scale khác DB | 5 phút |
-| 2 | Bối cảnh Pixiland | 5–7 phút |
+| 2 | Bối cảnh case study | 5–7 phút |
 | 3 | Khung lý thuyết + bản đồ SQL/NoSQL | 7–9 phút |
 | 4 | Demo 1 — House race condition | 12–15 phút |
 | 5 | Demo 2 — Hero/config schema | 15–18 phút |
 | 6 | Demo 3 — Leaderboard realtime | 12–15 phút |
-| 7 | Quiz tương tác (optional — chưa có script, dùng câu hỏi gợi mở ở phần Q&A) | 8–10 phút |
-| 8 | Demo 4 — Analytics | 12–15 phút |
+| 7 | Demo 4 — Match history (wide-column) | 12–15 phút |
+| 8 | Demo 5 — Analytics | 12–15 phút |
 | 9 | Pitfalls | 12–15 phút |
 | 10 | Decision framework | 8–10 phút |
 | 11 | Q&A / Discussion | 10 phút |
-| **Tổng** | | **~100–120 phút** |
+| **Tổng** | | **~120–140 phút** |
 
 > Có thể co nhẹ ở: phần lý thuyết, Demo 2 (bỏ benchmark), Pitfalls (chỉ nêu 3 cái nổi bật nhất).

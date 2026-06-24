@@ -26,11 +26,11 @@
     "demo:2:layer2": "tsx demos/02-hero-config/layer2.ts",
     "demo:2:lock": "tsx demos/02-hero-config/lock-proof.ts",
     "demo:3": "tsx demos/03-leaderboard/index.ts",
-    "demo:4": "tsx demos/04-analytics/index.ts",
-    "demo:5": "tsx demos/05-match-history/index.ts all",
-    "demo:5:seed": "tsx demos/05-match-history/index.ts seed",
-    "demo:5:read": "tsx demos/05-match-history/index.ts read",
-    "demo:5:contract": "tsx demos/05-match-history/index.ts contract"
+    "demo:4": "tsx demos/04-match-history/index.ts all",
+    "demo:4:seed": "tsx demos/04-match-history/index.ts seed",
+    "demo:4:read": "tsx demos/04-match-history/index.ts read",
+    "demo:4:contract": "tsx demos/04-match-history/index.ts contract",
+    "demo:5": "tsx demos/05-analytics/index.ts"
   },
   "dependencies": {
     "@clickhouse/client": "^1.22.0",

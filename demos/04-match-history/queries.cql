@@ -1,8 +1,8 @@
 -- ============================================================================
--- Demo 5 — Match history (wide-column) · chạy tay
+-- Demo 4 — Match history (wide-column) · chạy tay
 --   CQL  → ScyllaDB  (DataGrip: data source Cassandra/Scylla, host localhost:59042)
 --   SQL  → PostgreSQL (database pixiland) — phần ở cuối, đánh dấu [PG]
--- Chạy `npm run demo:5:seed` trước để có dữ liệu.
+-- Chạy `npm run demo:4:seed` trước để có dữ liệu.
 -- ============================================================================
 
 
