@@ -260,7 +260,8 @@ function printUsage(): void {
         "    npm run demo:1:naive       — race condition (nhiều winners)\n" +
         "    npm run demo:1:for-update  — row lock + latency đuôi dài\n" +
         "    npm run demo:1:redis       — SET NX, latency phẳng\n" +
-        "    npm run demo:1:all         — cả 3 + bảng tổng\n",
+        "    npm run demo:1:all         — cả 3 + bảng tổng\n" +
+        "\n  SQL chạy tay (DataGrip): demos/01-house-contention/queries.sql\n",
     ),
   );
 }
