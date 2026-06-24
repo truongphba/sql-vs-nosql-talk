@@ -1,6 +1,6 @@
 # Demo 2 — Hero / building config (15–18 phút)
 
-← [Demo 1](01-house-contention.md) · [Index](README.md) · Demo 3 → [Leaderboard](03-leaderboard.md)
+← [Demo 1](01-reward-claim.md) · [Index](README.md) · Demo 3 → [Leaderboard](03-leaderboard.md)
 
 **Trục:** Layer 1 read patterns (Mongo nhanh mọi hướng? → đọc ngược cần index, `$lookup` đắt) → Layer 2 schema evolution (backfill nhanh = tốt? → **đo lock**, PG rewrite chặn reader) → bằng chứng `pg_locks`.
 
@@ -19,7 +19,7 @@ npm run db:size         # so disk norm vs jsonb (embed trả giá storage)
 | 0:00–2:00 | Slide D2 + approach (3 card) | "Hero config nested + kèm owner, evolve mỗi tuần. PG thuần vs JSONB vs Mongo." |
 | 2:00–3:00 | `demo:2:seed` (nền) | Trong lúc seed: giới thiệu whale skew (10% user giữ 75% hero). |
 | 3:00–6:30 LAYER 1 | KY VONG "Mongo nhanh mọi hướng" → `demo:2:layer1` | "Xuôi: 1 doc thắng. **Ngược: có index PG ngang, MẤT index Mongo `$lookup` ~27ms đắt nhất.** 'Mongo nhanh mọi hướng' bị lật." |
-| 6:30–7:30 DISK | `npm run db:size` | "Embed trả giá: `pixiland_jsonb` lớn hơn norm ~1.5-1.7× vì duplicate snapshot." |
+| 6:30–7:30 DISK | `npm run db:size` | "Embed trả giá: `gamedb_jsonb` lớn hơn norm ~1.5-1.7× vì duplicate snapshot." |
 | 7:30–11:00 LAYER 2 ⭐ | KY VONG "backfill nhanh = tốt" → `demo:2:layer2` | **Part A:** đọc `trait` trên data cũ → PG **ERROR no column** (buộc ALTER) vs JSONB/Mongo **null** (lazy, 0 migration). **Part B:** PG rewrite *nhanh hơn* nhưng giữ `ACCESS EXCLUSIVE` → **6/6 reader kẹt**; JSONB/Mongo không block. |
 | 11:00–13:00 LOCK | `demo:2:lock` (hoặc DataGrip 3-session trên `heroes`) | In `pg_locks`: 1 `AccessExclusiveLock granted=t` + 6 `AccessShareLock granted=f (waiting)`. "Khoá có thật." |
 | 13:00–15:00 | Trade-off + takeaway | "Không storage nào thắng mọi access pattern. JSONB là sweet spot: flexible + vẫn JOIN. Mongo khi document là access pattern chính." |

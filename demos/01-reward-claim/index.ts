@@ -1,5 +1,5 @@
-// Demo 1 — House contention / race condition
-// 100 user cùng hit 1 house trống. Chỉ 1 người được thắng.
+// Demo 1 — Shared reward claim / race condition
+// 100 user cùng claim 1 reward pool. Chỉ 1 người được thắng.
 // So sánh: Naive PostgreSQL · PostgreSQL FOR UPDATE · Redis SET NX
 //
 // Live talk — chạy từng case:
@@ -11,12 +11,15 @@ import { makePool } from "../../src/db/pg";
 import { makeRedis } from "../../src/db/redis";
 import { printTable, ok, bad, dim, title, acc } from "../../src/lib/table";
 import { ms } from "../../src/lib/timer";
+import { withSpinner } from "../../src/lib/progress";
 
 const N = 100; // số request đồng thời — khớp kịch bản
+const REWARD_ID = 1;
+const REDIS_KEY = `reward:${REWARD_ID}`;
 
 type Case = "naive" | "for-update" | "redis";
 type Latency = { minMs: number; avgMs: number; p95Ms: number; maxMs: number };
-type Result = { winners: number; lat: Latency; occupantId?: string | null };
+type Result = { winners: number; lat: Latency; claimerId?: string | null };
 
 const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
@@ -34,7 +37,7 @@ function latencyStats(xs: number[]): Latency {
 const CASES: Record<Case, { label: string; blurb: string; next?: string }> = {
   naive: {
     label: "Naive PostgreSQL",
-    blurb: "SELECT thấy NULL → UPDATE — không lock giữa read/write",
+    blurb: "SELECT thấy chưa claim → UPDATE — không lock giữa read/write",
     next: "npm run demo:1:for-update",
   },
   "for-update": {
@@ -48,38 +51,43 @@ const CASES: Record<Case, { label: string; blurb: string; next?: string }> = {
   },
 };
 
-async function resetHouse(pool: Pool): Promise<void> {
-  await pool.query(`CREATE TABLE IF NOT EXISTS houses (
+async function resetReward(pool: Pool): Promise<void> {
+  await pool.query(`CREATE TABLE IF NOT EXISTS shared_rewards (
     id int PRIMARY KEY,
-    occupant_id text,
-    occupied_at timestamptz
+    claimer_id text,
+    claimed_at timestamptz
   )`);
-  await pool.query(`TRUNCATE houses`);
-  await pool.query(`INSERT INTO houses (id, occupant_id) VALUES (1, NULL)`);
+  await pool.query(`TRUNCATE shared_rewards`);
+  await pool.query(
+    `INSERT INTO shared_rewards (id, claimer_id) VALUES ($1, NULL)`,
+    [REWARD_ID],
+  );
 }
 
-async function readOccupant(pool: Pool): Promise<string | null> {
-  const r = await pool.query<{ occupant_id: string | null }>(
-    `SELECT occupant_id FROM houses WHERE id = 1`,
+async function readClaimer(pool: Pool): Promise<string | null> {
+  const r = await pool.query<{ claimer_id: string | null }>(
+    `SELECT claimer_id FROM shared_rewards WHERE id = $1`,
+    [REWARD_ID],
   );
-  return r.rows[0]?.occupant_id ?? null;
+  return r.rows[0]?.claimer_id ?? null;
 }
 
 async function naivePg(pool: Pool): Promise<Result> {
-  await resetHouse(pool);
+  await resetReward(pool);
   const samples: number[] = [];
   let winners = 0;
   await Promise.all(
     Array.from({ length: N }, (_, i) =>
       (async () => {
         const t0 = performance.now();
-        const r = await pool.query<{ occupant_id: string | null }>(
-          `SELECT occupant_id FROM houses WHERE id = 1`,
+        const r = await pool.query<{ claimer_id: string | null }>(
+          `SELECT claimer_id FROM shared_rewards WHERE id = $1`,
+          [REWARD_ID],
         );
-        if (r.rows[0].occupant_id === null) {
+        if (r.rows[0].claimer_id === null) {
           await pool.query(
-            `UPDATE houses SET occupant_id = $1, occupied_at = now() WHERE id = 1`,
-            [`user_${i}`],
+            `UPDATE shared_rewards SET claimer_id = $1, claimed_at = now() WHERE id = $2`,
+            [`user_${i}`, REWARD_ID],
           );
           winners++;
         }
@@ -87,11 +95,11 @@ async function naivePg(pool: Pool): Promise<Result> {
       })(),
     ),
   );
-  return { winners, lat: latencyStats(samples), occupantId: await readOccupant(pool) };
+  return { winners, lat: latencyStats(samples), claimerId: await readClaimer(pool) };
 }
 
 async function pgForUpdate(pool: Pool): Promise<Result> {
-  await resetHouse(pool);
+  await resetReward(pool);
   const samples: number[] = [];
   let winners = 0;
   await Promise.all(
@@ -101,17 +109,20 @@ async function pgForUpdate(pool: Pool): Promise<Result> {
         const c = await pool.connect();
         try {
           await c.query("BEGIN");
-          const r = await c.query<{ occupant_id: string | null }>(
-            `SELECT occupant_id FROM houses WHERE id = 1 FOR UPDATE`,
+          const r = await c.query<{ claimer_id: string | null }>(
+            `SELECT claimer_id FROM shared_rewards WHERE id = $1 FOR UPDATE`,
+            [REWARD_ID],
           );
-          if (r.rows[0].occupant_id === null) {
+          if (r.rows[0].claimer_id === null) {
             await c.query(
-              `UPDATE houses SET occupant_id = $1, occupied_at = now() WHERE id = 1`,
-              [`user_${i}`],
+              `UPDATE shared_rewards SET claimer_id = $1, claimed_at = now() WHERE id = $2`,
+              [`user_${i}`, REWARD_ID],
             );
             winners++;
           }
           await c.query("COMMIT");
+        } catch {
+          await c.query("ROLLBACK");
         } finally {
           c.release();
         }
@@ -123,14 +134,14 @@ async function pgForUpdate(pool: Pool): Promise<Result> {
 }
 
 async function redisSetNx(redis: Redis): Promise<Result> {
-  await redis.del("house:1");
+  await redis.del(REDIS_KEY);
   const samples: number[] = [];
   let winners = 0;
   await Promise.all(
     Array.from({ length: N }, (_, i) =>
       (async () => {
         const t0 = performance.now();
-        const res = await redis.set("house:1", `user_${i}`, "EX", 1800, "NX");
+        const res = await redis.set(REDIS_KEY, `user_${i}`, "EX", 1800, "NX");
         if (res === "OK") winners++;
         samples.push(performance.now() - t0);
       })(),
@@ -156,13 +167,13 @@ function printCaseNotes(name: Case, result: Result): void {
   if (name === "naive" && result.winners > 1) {
     console.log(
       bad(
-        `\n  → Race condition: ${result.winners}/${N} request cùng tưởng mình thắng ` +
+        `\n  → Race condition: ${result.winners}/${N} request cùng tưởng mình claim được ` +
           `(đọc NULL trước khi ai đó ghi xong).`,
       ),
     );
-    if (result.occupantId) {
+    if (result.claimerId) {
       console.log(
-        dim(`  → DB truth: 1 occupant (${result.occupantId}) · app đếm: ${result.winners} winners`),
+        dim(`  → DB truth: 1 claimer (${result.claimerId}) · app đếm: ${result.winners} winners`),
       );
     }
   }
@@ -198,12 +209,16 @@ async function runCase(
   console.log(dim(`   ${meta.blurb}`));
   console.log(dim("   Latency: min / avg / p95 / max"));
 
-  const result =
-    name === "naive"
-      ? await naivePg(pool)
-      : name === "for-update"
-        ? await pgForUpdate(pool)
-        : await redisSetNx(redis);
+  const result = await withSpinner(
+    meta.label,
+    async () =>
+      name === "naive"
+        ? naivePg(pool)
+        : name === "for-update"
+          ? pgForUpdate(pool)
+          : redisSetNx(redis),
+    (r) => `${r.winners} winner(s) · avg ${ms(r.lat.avgMs)}`,
+  );
 
   printTable(
     ["APPROACH", "WINNERS", "min", "avg", "p95", "max", "CORRECTNESS"],
@@ -253,7 +268,7 @@ function parseArg(): Case | "all" | "help" {
 }
 
 function printUsage(): void {
-  title(`DEMO 1 — House contention · ${N} request đồng thời`);
+  title(`DEMO 1 — Shared reward claim · ${N} request đồng thời`);
   console.log(
     dim(
       "  Chạy từng case (live talk):\n" +
@@ -261,7 +276,7 @@ function printUsage(): void {
         "    npm run demo:1:for-update  — row lock + latency đuôi dài\n" +
         "    npm run demo:1:redis       — SET NX, latency phẳng\n" +
         "    npm run demo:1:all         — cả 3 + bảng tổng\n" +
-        "\n  SQL chạy tay (DataGrip): demos/01-house-contention/queries.sql\n",
+        "\n  SQL chạy tay (DataGrip): demos/01-reward-claim/queries.sql\n",
     ),
   );
 }
@@ -276,7 +291,7 @@ async function main(): Promise<void> {
   const pool = makePool(50);
   const redis = makeRedis();
   try {
-    title(`DEMO 1 — House contention · ${N} request đồng thời vào 1 house trống`);
+    title(`DEMO 1 — Shared reward claim · ${N} request đồng thời vào 1 reward pool`);
 
     if (mode === "all") {
       const rows: { name: Case; result: Result }[] = [];

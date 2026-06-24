@@ -1,6 +1,7 @@
 // Demo 2 · SEED — chạy 1 lần đầu buổi: nạp 100K hero vào norm/jsonb/mongo + tạo index.
 // Sau đó dùng demo:2:layer1 / demo:2:layer2 mà KHÔNG cần seed lại.
 //   npm run demo:2:seed
+import { env } from "../../src/lib/env";
 import { ensurePgDatabase, makePoolForDb, pgDbs } from "../../src/db/pg";
 import { makeMongo } from "../../src/db/mongo";
 import { printTable, dim, title } from "../../src/lib/table";
@@ -14,7 +15,7 @@ async function main(): Promise<void> {
   const { client, db } = await makeMongo();
   try {
     title(`DEMO 2 · SEED — ${fmtScale(N)} hero · ${whaleCount} whale · ~${avgHeroesPerWhale.toFixed(0)} hero/whale`);
-    console.log(dim(`  ${userN.toLocaleString()} user · norm=${pgDbs.norm} · jsonb=${pgDbs.jsonb} · mongo=pixiland\n`));
+    console.log(dim(`  ${userN.toLocaleString()} user · norm=${pgDbs.norm} · jsonb=${pgDbs.jsonb} · mongo=${env.mongoDb}\n`));
     const seed = genSeed();
     const insNorm = await seedNorm(poolNorm, seed);
     const insJsonb = await seedJsonb(poolJsonb, seed);

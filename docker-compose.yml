@@ -1,16 +1,16 @@
-# DB stack cho Pixiland demo.
+# DB stack cho tech talk demo (generic live game platform).
 # Host port lệch để tránh đụng service local (vd Redis 6379 đang chạy sẵn).
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: pixi
-      POSTGRES_PASSWORD: pixi
-      POSTGRES_DB: pixiland
+      POSTGRES_USER: game
+      POSTGRES_PASSWORD: game
+      POSTGRES_DB: gamedb
     ports:
       - "55432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pixi -d pixiland"]
+      test: ["CMD-SHELL", "pg_isready -U game -d gamedb"]
       interval: 2s
       timeout: 3s
       retries: 20
@@ -41,9 +41,9 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
     environment:
-      CLICKHOUSE_USER: pixi
-      CLICKHOUSE_PASSWORD: pixi
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1   # user pixi truy cập từ mọi network (host/DataGrip)
+      CLICKHOUSE_USER: game
+      CLICKHOUSE_PASSWORD: game
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1   # user game truy cập từ mọi network (host/DataGrip)
     ports:
       - "58123:8123"   # HTTP (driver @clickhouse/client + DataGrip)
       - "59000:9000"   # native TCP (DataGrip ClickHouse native)

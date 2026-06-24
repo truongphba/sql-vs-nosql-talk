@@ -7,6 +7,7 @@ import { makePool } from "../../src/db/pg";
 import { makeClickhouse } from "../../src/db/clickhouse";
 import { printTable, dim, title } from "../../src/lib/table";
 import { timed } from "../../src/lib/timer";
+import { withSpinner } from "../../src/lib/progress";
 
 const N = 5_000_000;
 const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(2)}s` : `${n.toFixed(0)}ms`);
@@ -83,14 +84,30 @@ async function main(): Promise<void> {
   try {
     title(`DEMO 4 — Analytics · ${N.toLocaleString()} battle_log rows · OLTP vs OLAP`);
 
-    const pgSeed = await seedPg(pool);
-    const chSeed = await seedClickhouse(ch);
+    const pgSeed = await withSpinner(
+      `PostgreSQL · seed ${(N / 1_000_000).toFixed(0)}M rows`,
+      () => seedPg(pool),
+      (t) => fmt(t),
+    );
+    const chSeed = await withSpinner(
+      `ClickHouse · seed ${(N / 1_000_000).toFixed(0)}M rows`,
+      () => seedClickhouse(ch),
+      (t) => fmt(t),
+    );
     console.log(dim(`  seed: Postgres ${fmt(pgSeed)} · ClickHouse ${fmt(chSeed)}`));
 
     const rows: string[][] = [];
     for (const q of QUERIES) {
-      const { ms: pgMs } = await timed(() => pool.query(q.pg));
-      const { ms: chMs } = await timed(() => chQuery(ch, q.ch));
+      const { ms: pgMs } = await withSpinner(
+        `PostgreSQL · ${q.label}`,
+        () => timed(() => pool.query(q.pg)),
+        (r) => fmt(r.ms),
+      );
+      const { ms: chMs } = await withSpinner(
+        `ClickHouse · ${q.label}`,
+        () => timed(() => chQuery(ch, q.ch)),
+        (r) => fmt(r.ms),
+      );
       const speed = (pgMs / chMs).toFixed(0);
       rows.push([q.label, fmt(pgMs), fmt(chMs), `${speed}x`]);
     }

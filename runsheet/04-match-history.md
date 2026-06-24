@@ -16,11 +16,12 @@ npm run demo:4:contract  # ad-hoc → Scylla TỪ CHỐI
 |---|---|---|
 | 0:00–1:30 | Slide D4 + approach · **callback Discord** | "Nhớ Discord đầu buổi? Hàng nghìn tỷ message append-only → họ dừng ở **ScyllaDB**. Game của mình có match history y vậy." |
 | 1:30–2:30 | KY VONG "Scylla nhanh hơn mọi mặt" | "Trực giác: NoSQL nhanh hơn write + read + mọi query. Giữ dự đoán đó." |
-| 2:30–4:30 WRITE | `demo:4:seed` → bảng throughput | "Scylla **~2.7x** write trên 1 node — shard-per-core, LSM append. Win **thật**." |
-| 4:30–6:00 READ | `demo:4:read` | "Đọc 'last 50'? **Ngang nhau** (~0.2ms). PG index · Scylla clustering. Đừng tin 'NoSQL đọc nhanh hơn'." |
-| 6:00–9:00 CONTRACT ⭐ | `demo:4:contract` → dòng **TỪ CHỐI** | "Query ad-hoc theo opponent (không phải partition key): Postgres thêm index là xong; Scylla **TỪ CHỐI** — `use ALLOW FILTERING`. Wide-column **không cho** query tuỳ ý." |
+| 2:30–5:30 WRITE | `demo:4:seed` → bảng throughput | "Scylla **~2.7x** write trên 1 node — shard-per-core, LSM append. Win **thật**." |
+| 5:30–7:00 READ | `demo:4:read` | "Đọc 'last 50'? **Ngang nhau** (~0.2ms). PG index · Scylla clustering. Đừng tin 'NoSQL đọc nhanh hơn'." |
+| 7:00–9:30 CONTRACT ⭐ | `demo:4:contract` → dòng **TỪ CHỐI** | "Query ad-hoc theo opponent (không phải partition key): Postgres thêm index là xong; Scylla **TỪ CHỐI** — `use ALLOW FILTERING`. Wide-column **không cho** query tuỳ ý." |
 | *(tuỳ chọn)* | DataGrip `queries.cql` | Chạy `WHERE opponent=1` → đỏ InvalidRequest; `DESCRIBE TABLE` partition vs clustering key. |
-| 9:00–10:30 | Caveat trung thực | "1 node + dev-mode. Thế mạnh THẬT của Scylla — **scale-out tuyến tính + HA** — không demo trên 1 máy được. Đó mới là lý do Discord chọn." |
+| 9:30–10:30 | Slide **STORAGE LAYOUT** (sau benchmark) | "Vừa thấy số — giờ giải **tại sao**: DataGrip cột giống nhau; PG = heap + index (ctid); Scylla = partition + clustering. Reveal query OK vs từ chối." |
+| 10:30–11:30 | Slide **SCALE-OUT · DIAGRAM ONLY** | "Demo local chỉ 1 node. PG → sharding thủ công; Scylla **+ node → + write**. Diagram thay production cluster." |
 | 10:30–12:00 | Takeaway | "Wide-column không 'nhanh hơn SQL' — là **hợp đồng khác**: đổi JOIN/ad-hoc lấy write scale-out + partition read. Bạn có biết TRƯỚC mình sẽ query thế nào không?" |
 
 **Quyết định "perfect":** cao trào là khoảnh khắc **TỪ CHỐI** (không phải con số). Đừng oversell read (nói thẳng "ngang"). Caveat 1-node **bắt buộc** nói trước để khỏi bị bắt bẻ "single-node không công bằng".

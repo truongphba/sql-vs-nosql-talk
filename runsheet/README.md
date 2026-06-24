@@ -4,7 +4,7 @@
 
 | Demo | File | Engine | Trục |
 |---|---|---|---|
-| 1 House contention | [01-house-contention.md](01-house-contention.md) | Postgres · Redis | race → fix → twist |
+| 1 Shared reward claim | [01-reward-claim.md](01-reward-claim.md) | Postgres · Redis | race → fix → twist |
 | 2 Hero config | [02-hero-config.md](02-hero-config.md) | Postgres · JSONB · Mongo | read patterns → lock dưới tải |
 | 3 Leaderboard | [03-leaderboard.md](03-leaderboard.md) | Postgres · Redis | read model vs truth |
 | 4 Match history | [04-match-history.md](04-match-history.md) | Postgres · ScyllaDB | "nhanh hơn mọi mặt" → contract |
@@ -14,7 +14,7 @@
 
 - `npm run db:up` **sớm** — 5 container; **ScyllaDB ~20-30s**, **ClickHouse ~10s** khởi động chậm nhất.
 - **Rehearsal 1 lần mỗi demo** để warm pool/cache → số live ổn định, không cold-start nhảy số. Demo 2 & 4 nhớ `:seed` trước.
-- Mở sẵn DataGrip nối: Postgres (`55432`), ClickHouse (`58123`, user/pass `pixi`/`pixi`), ScyllaDB (`59042`) — cho các khoảnh khắc query tay.
+- Mở sẵn DataGrip nối: Postgres (`55432`, user/pass `game`/`game`), ClickHouse (`58123`, user/pass `game`/`game`), ScyllaDB (`59042`) — cho các khoảnh khắc query tay.
 
 ## Cơ chế "Đo, đừng đoán" (áp dụng mọi demo benchmark)
 
@@ -30,7 +30,7 @@ Slide benchmark **chỉ ghi KY VONG** (banner myth + bảng số dự đoán) �
 
 | Demo | KY VONG (trực giác) | Thực tế (đo) | Kết |
 |---|---|---|---|
-| 1 House contention | FOR UPDATE chậm nhất · Redis nhanh nhất | **naive chậm nhất** · FOR UPDATE không chậm · Redis nhanh nhất | BUST |
+| 1 Shared reward claim | FOR UPDATE chậm nhất · Redis nhanh nhất | **naive chậm nhất** · FOR UPDATE không chậm · Redis nhanh nhất | BUST |
 | 2 Hero config | Mongo nhanh mọi hướng · backfill nhanh = tốt | đọc ngược cần index · **migration rewrite chặn reader** | BUST |
 | 3 Leaderboard | Redis đọc nhanh hơn ~200x | đọc **ngang** PG (có index) · Redis thắng **write** | BUST |
 | 4 Match history | Scylla nhanh hơn mọi mặt | write thắng · read **ngang** · ad-hoc **từ chối** | BUST một phần |

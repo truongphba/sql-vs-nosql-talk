@@ -2,9 +2,9 @@ import pg from "pg";
 import { env } from "../lib/env";
 
 export const pgDbs = {
-  default: "pixiland",
-  norm: "pixiland_norm",
-  jsonb: "pixiland_jsonb",
+  default: "gamedb",
+  norm: "gamedb_norm",
+  jsonb: "gamedb_jsonb",
 } as const;
 
 export function pgUrlForDb(dbName: string): string {

@@ -18,6 +18,7 @@ import { makeScylla } from "../../src/db/scylla";
 import { env } from "../../src/lib/env";
 import { printTable, dim, title, ok, bad, acc } from "../../src/lib/table";
 import { timed, ms } from "../../src/lib/timer";
+import { runConcurrentWithSpinner, withSpinner } from "../../src/lib/progress";
 
 const N = 200_000; // số match event
 const PLAYERS = 2_000; // ~100 trận/player → đủ cho "last 50"
@@ -29,18 +30,6 @@ const RESULTS = ["win", "lose"];
 const rnd = (n: number) => Math.floor(Math.random() * n);
 const eventTime = (i: number) => new Date(BASE - SPAN_MS + Math.floor((i / N) * SPAN_MS)); // i lớn = mới
 const thrZ = (n: number, msTotal: number) => `${(n / (msTotal / 1000) / 1000).toFixed(0)}k/s`;
-
-async function runConcurrent(total: number, concurrency: number, fn: (i: number) => Promise<unknown>): Promise<void> {
-  let next = 0;
-  const worker = async () => {
-    while (true) {
-      const i = next++;
-      if (i >= total) break;
-      await fn(i);
-    }
-  };
-  await Promise.all(Array.from({ length: concurrency }, worker));
-}
 
 async function avgReadMs(reads: number, fn: (i: number) => Promise<unknown>): Promise<number> {
   const { ms: total } = await timed(async () => {
@@ -56,9 +45,9 @@ async function seedPg(pool: Pool): Promise<number> {
   await pool.query(`CREATE INDEX matches_player_time_idx ON matches (player_id, match_time DESC)`); // index có sẵn lúc ghi (production-like)
   const text = `INSERT INTO matches (player_id, match_time, match_id, opponent, result, score_delta) VALUES ($1,$2,$3,$4,$5,$6)`;
   const { ms: t } = await timed(() =>
-    runConcurrent(N, WRITE_CONCURRENCY, (i) =>
+    runConcurrentWithSpinner(N, WRITE_CONCURRENCY, (i) =>
       pool.query({ name: "ins_match", text, values: [1 + rnd(PLAYERS), eventTime(i), i, 1 + rnd(PLAYERS), RESULTS[rnd(2)], rnd(200) - 100] }),
-    ),
+    , `PostgreSQL · ghi ${(N / 1000).toFixed(0)}K event`),
   );
   return t;
 }
@@ -71,9 +60,9 @@ async function seedScylla(client: Client): Promise<number> {
   );
   const insert = `INSERT INTO matches_by_player (player_id, match_time, match_id, opponent, result, score_delta) VALUES (?,?,?,?,?,?)`;
   const { ms: t } = await timed(() =>
-    runConcurrent(N, WRITE_CONCURRENCY, (i) =>
+    runConcurrentWithSpinner(N, WRITE_CONCURRENCY, (i) =>
       client.execute(insert, [1 + rnd(PLAYERS), eventTime(i), i, 1 + rnd(PLAYERS), RESULTS[rnd(2)], rnd(200) - 100], { prepare: true }),
-    ),
+    , `ScyllaDB · ghi ${(N / 1000).toFixed(0)}K event`),
   );
   return t;
 }
@@ -162,8 +151,8 @@ async function main(): Promise<void> {
 
     if (mode === "read" || mode === "all") {
       if (!(await assertSeeded(scylla))) return;
-      const pgR = await readPg(pool);
-      const zR = await readScylla(scylla);
+      const pgR = await withSpinner("PostgreSQL · partition read", () => readPg(pool), (n) => `avg ${ms(n)}`);
+      const zR = await withSpinner("ScyllaDB · partition read", () => readScylla(scylla), (n) => `avg ${ms(n)}`);
       console.log(dim("\n── Partition read · 'last 50 của player X' ──"));
       printTable(["READ", "POSTGRESQL", "SCYLLADB"], [["last-50 partition read", ms(pgR), ms(zR)]]);
       console.log(dim(`  Cả hai nhanh (PG index · Scylla clustering). Đừng oversell read — điểm khác biệt nằm ở write + contract.`));

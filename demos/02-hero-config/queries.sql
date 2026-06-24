@@ -3,8 +3,8 @@
 -- ============================================================================
 -- Chạy `npm run demo:2:seed` trước để có 100K hero trong cả 2 database.
 -- Có HAI database Postgres riêng — đổi connection/schema trong DataGrip cho đúng:
---     pixiland_norm   → approach normalized (nhiều bảng + JOIN)
---     pixiland_jsonb  → approach JSONB (1 bảng heroes, cột config jsonb)
+--     gamedb_norm   → approach normalized (nhiều bảng + JOIN)
+--     gamedb_jsonb  → approach JSONB (1 bảng heroes, cột config jsonb)
 -- (MongoDB ở cuối file — chạy bằng mongosh / DataGrip Mongo.)
 -- Mẹo: bật "Explain Plan" hoặc dùng EXPLAIN (ANALYZE, BUFFERS) để thấy index ăn hay không.
 -- ============================================================================
@@ -18,7 +18,7 @@
 -- 1A. ĐỌC XUÔI (hero + owner + wallet + skills)
 -- ─────────────────────────────────────────────────────────────
 
--- >>> Connect: pixiland_norm  — phải JOIN 4 bảng + json_agg
+-- >>> Connect: gamedb_norm  — phải JOIN 4 bảng + json_agg
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT h.id, h.name, h.rarity, h.type, h.atk, h.def, h.hp,
        u.id AS owner_id, u.name AS owner_name, u.level,
@@ -32,7 +32,7 @@ LEFT JOIN hero_skills s ON s.hero_id = h.id
 WHERE h.id = 12345
 GROUP BY h.id, u.id, w.user_id;
 
--- >>> Connect: pixiland_jsonb  — 1 read, owner/wallet/skills nằm sẵn trong config
+-- >>> Connect: gamedb_jsonb  — 1 read, owner/wallet/skills nằm sẵn trong config
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT config FROM heroes WHERE id = 12345;
 
@@ -42,7 +42,7 @@ SELECT config FROM heroes WHERE id = 12345;
 --     whale = user id nhỏ (1..5000). Thử id = 1.
 -- ─────────────────────────────────────────────────────────────
 
--- >>> Connect: pixiland_norm
+-- >>> Connect: gamedb_norm
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT u.id, u.name, w.balance, w.vip_tier,
        h.id AS hero_id, h.name AS hero_name, h.rarity
@@ -51,7 +51,7 @@ JOIN wallets w ON w.user_id = u.id
 JOIN heroes  h ON h.owner_id = u.id
 WHERE u.id = 1;
 
--- So sánh CÓ index vs MẤT index (chạy trên pixiland_norm):
+-- So sánh CÓ index vs MẤT index (chạy trên gamedb_norm):
 --   DROP INDEX heroes_owner_id_idx;        -- bỏ index → seq scan, chậm hơn
 --   (chạy lại query đọc ngược ở trên, xem EXPLAIN đổi sang Seq Scan)
 --   CREATE INDEX heroes_owner_id_idx ON heroes (owner_id);   -- khôi phục
@@ -61,7 +61,7 @@ WHERE u.id = 1;
 -- 1C. JSONB — truy vấn theo field bên trong config (cần index thủ công)
 -- ─────────────────────────────────────────────────────────────
 
--- >>> Connect: pixiland_jsonb
+-- >>> Connect: gamedb_jsonb
 -- Lọc theo field cụ thể — B-tree expression index:
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT id, name FROM heroes WHERE config->>'rarity' = 'UR' LIMIT 20;
@@ -83,16 +83,16 @@ SELECT id, name FROM heroes WHERE config @> '{"rarity":"UR"}' LIMIT 20;
 -- 2A. ĐỌC FIELD MỚI TRÊN DATA CŨ (chưa migrate)
 -- ─────────────────────────────────────────────────────────────
 
--- >>> Connect: pixiland_norm  → LỖI: cột chưa tồn tại → buộc phải ALTER
+-- >>> Connect: gamedb_norm  → LỖI: cột chưa tồn tại → buộc phải ALTER
 SELECT trait FROM heroes LIMIT 1;
 -- ERROR: column "trait" does not exist
 
--- >>> Connect: pixiland_jsonb → trả null, KHÔNG lỗi → đọc lazy OK, 0 migration
+-- >>> Connect: gamedb_jsonb → trả null, KHÔNG lỗi → đọc lazy OK, 0 migration
 SELECT id, config->>'trait' AS trait FROM heroes LIMIT 1;
 
 
 -- ─────────────────────────────────────────────────────────────
--- 2B. CÁC KIỂU MIGRATION & CHI PHÍ LOCK  (chạy trên pixiland_norm)
+-- 2B. CÁC KIỂU MIGRATION & CHI PHÍ LOCK  (chạy trên gamedb_norm)
 -- ─────────────────────────────────────────────────────────────
 
 -- (i) ADD COLUMN nullable = METADATA-ONLY (PG 11+), gần như tức thì, không rewrite:
@@ -110,17 +110,17 @@ ALTER TABLE heroes DROP COLUMN trait_const;
 
 
 -- ╔════════════════════════════════════════════════════════════════════════╗
--- ║ LOCK PROOF · 3 session trên bảng heroes THẬT (pixiland_norm)             ║
+-- ║ LOCK PROOF · 3 session trên bảng heroes THẬT (gamedb_norm)             ║
 -- ║ Lock 1 ALTER auto-commit chỉ sống ~vài trăm ms — query tay không kịp.    ║
 -- ║ Mẹo: bọc trong transaction CHƯA commit để giữ lock bao lâu tuỳ ý.        ║
 -- ╚════════════════════════════════════════════════════════════════════════╝
 
--- ── SESSION 1 (giữ lock) ── mở 1 console DataGrip trỏ pixiland_norm:
+-- ── SESSION 1 (giữ lock) ── mở 1 console DataGrip trỏ gamedb_norm:
 BEGIN;
 ALTER TABLE heroes ADD COLUMN trait_demo text NOT NULL DEFAULT md5(random()::text);
 -- để nguyên, CHƯA commit → AccessExclusiveLock đang bị giữ
 
--- ── SESSION 2 (đọc heroes → sẽ TREO) ── console thứ hai, pixiland_norm:
+-- ── SESSION 2 (đọc heroes → sẽ TREO) ── console thứ hai, gamedb_norm:
 SELECT id, name FROM heroes WHERE id = 1;   -- treo, xếp hàng chờ lock
 
 -- ── SESSION 3 (xem lock queue → chạy ngay, KHÔNG treo) ── console thứ ba:
@@ -134,7 +134,7 @@ ORDER BY l.granted DESC, l.pid;
 -- ── SESSION 1 (nhả lock + undo) ──
 ROLLBACK;   -- bỏ cột trait_demo, trả heroes về nguyên trạng; session 2 lập tức trả kết quả
 
--- ── ĐỐI CHỨNG: JSONB backfill KHÔNG chặn reader (pixiland_jsonb) ──
+-- ── ĐỐI CHỨNG: JSONB backfill KHÔNG chặn reader (gamedb_jsonb) ──
 -- Session 1:  BEGIN; UPDATE heroes SET config = config || '{"trait":"X"}'::jsonb; -- chưa commit
 -- Session 2:  SELECT id FROM heroes WHERE id = 1;   -- VẪN CHẠY (chỉ RowExclusiveLock, MVCC)
 -- Session 3:  query pg_locks ở trên với 'heroes'::regclass → thấy RowExclusiveLock, không phải AccessExclusive
@@ -147,9 +147,9 @@ ROLLBACK;   -- bỏ cột trait_demo, trả heroes về nguyên trạng; session
 
 -- Kích thước từng database (chạy ở DB bất kỳ, vd postgres):
 SELECT datname AS db, pg_size_pretty(pg_database_size(datname)) AS size
-FROM pg_database WHERE datname LIKE 'pixiland%' ORDER BY datname;
+FROM pg_database WHERE datname LIKE 'gamedb%' ORDER BY datname;
 
--- Kích thước từng bảng (chạy trong pixiland_norm rồi pixiland_jsonb):
+-- Kích thước từng bảng (chạy trong gamedb_norm rồi gamedb_jsonb):
 SELECT relname AS table, pg_size_pretty(pg_total_relation_size(relid)) AS total
 FROM pg_stat_user_tables ORDER BY pg_total_relation_size(relid) DESC;
 
@@ -157,7 +157,7 @@ FROM pg_stat_user_tables ORDER BY pg_total_relation_size(relid) DESC;
 -- ╔════════════════════════════════════════════════════════════════════════╗
 -- ║ MONGODB (mongosh / DataGrip Mongo) — không phải SQL                      ║
 -- ╚════════════════════════════════════════════════════════════════════════╝
--- use pixiland
+-- use gamedb
 -- Xuôi:  db.heroes.findOne({ _id: 12345 })
 -- Ngược: db.users.aggregate([
 --          { $match: { _id: 1 } },

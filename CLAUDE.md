@@ -38,16 +38,18 @@ Repo gồm 3 phần, làm theo thứ tự:
 .
 ├── pixiland-db-talk.md        # SOURCE OF TRUTH — kịch bản buổi nói
 ├── CLAUDE.md
-├── docker-compose.yml         # Postgres + Mongo + Redis
+├── docker-compose.yml         # Postgres + Mongo + Redis + ScyllaDB + ClickHouse
 ├── package.json
 ├── presentation/              # slide reveal.js (gen từ kịch bản)
 │   └── index.html
+├── runsheet/                  # timing + lời nói từng demo (presenter cheat sheet)
 ├── src/
-│   └── db/                    # connection helper dùng chung cho các demo
+│   ├── db/                    # connection helper dùng chung cho các demo
+│   └── lib/                   # env, timer, table (terminal), progress (spinner)
 └── demos/
-    ├── 01-house-contention/   # Demo 1 — race condition
+    ├── 01-reward-claim/       # Demo 1 — shared reward claim / race condition
     ├── 02-hero-config/        # Demo 2 — schema / JSONB / Mongo
-    ├── 03-leaderboard/        # Demo 3 — Redis Sorted Set vs Postgres
+    ├── 03-leaderboard/        # Demo 3 — PG monolith vs PG battle + Redis (cùng audit)
     ├── 04-match-history/      # Demo 4 — wide-column ScyllaDB vs Postgres
     └── 05-analytics/          # Demo 5 — ClickHouse vs Postgres OLAP
 ```
@@ -57,7 +59,8 @@ Mỗi demo nên có `npm run demo:1` ... `demo:5` để chạy nhanh khi đứng
 ## Quy ước viết demo (quan trọng cho việc trình bày live)
 
 - **Lặp lại được:** mỗi script tự reset state đầu run (TRUNCATE bảng / `FLUSHDB` / xoá collection) để chạy nhiều lần trên sân khấu không bị bẩn data.
-- **Nhanh:** mỗi demo chạy xong trong vài giây — đang trình bày, không ai chờ 30s.
+- **Nhanh:** ưu tiên vài giây–~20s mỗi demo. Ngoại lệ chấp nhận được: Demo 3 (~25–35s, spike load), Demo 5 seed 5M rows (~vài chục giây). Đang trình bày — tránh chờ im lặng không feedback.
+- **Có loading khi chạy lâu:** dùng `src/lib/progress.ts` (`withSpinner`, `runPoolWithSpinner`, `runConcurrentWithSpinner`). Spinner trên **stderr**; bảng kết quả in **stdout** — không đè nhau. Non-TTY (pipe/CI) fallback `…` / `✓`.
 - **Output là điểm nhấn:** in ra **bảng so sánh** (approach × winners × latency × correctness) trông giống bảng trong kịch bản, để khán giả đối chiếu slide ↔ terminal.
 - **Số benchmark trong kịch bản là mục tiêu minh hoạ**, không phải con số phải khớp tuyệt đối. Demo thật chỉ cần **cùng order-of-magnitude** và **đúng về mặt định tính** (vd Redis nhanh hơn ~10x, Postgres FOR UPDATE đúng nhưng chậm hơn). Nếu lệch xa → chỉnh kịch bản cho khớp thực tế.
 - **Mỗi demo tự chứa:** đọc config DB từ env/`.env`, không hardcode credential rải rác.
@@ -82,10 +85,23 @@ Hướng **Pixel / Game (disciplined)**. Token gốc nằm ở đầu `presentat
 
 - [x] Kịch bản — bản nháp đầy đủ, đang tinh chỉnh (Phase 1 đã viết lại theo hướng "câu hỏi sai" + có timing chi tiết).
 - [x] Slide reveal.js — **toàn bộ buổi xong** (`presentation/`: 46 slide). Benchmark Demo 1–5 dùng cơ chế **"Đo, đừng đoán"**: slide chỉ ghi **KY VONG** (banner myth + bảng số dự đoán, đều là kỳ vọng) — **KHÔNG pre-bake số thật, KHÔNG verdict-box**. Số thật chạy **live ở terminal** rồi đối chiếu với kỳ vọng trên slide (confirm/bust diễn ra bằng lời lúc đứng nói). Spine gài ở Hook (thesis) + slide payoff "Đo, đừng đoán" trước Closing (phần lớn demo khác trực giác).
-- [x] Demo code — **Demo 1–5 chạy thật** (`docker-compose` + `demos/0X`, tsx). `npm run db:up` rồi `npm run demo:1..5`. Demo 4 dùng ScyllaDB (wide-column) — container nặng, khởi động chậm.
-  - Số thật đã chỉnh lại 2 narrative cho trung thực: Demo 1 (FOR UPDATE không phải chậm nhất ở scale này), Demo 3 (PG có index đọc top-N ngang Redis — Redis thắng ở write throughput + tách OLTP, không phải "đọc 200x"). Demo 2 & 4 số thật khớp narrative cũ.
+- [x] Demo code — **Demo 1–5 chạy thật** (`docker-compose` + `demos/0X`, tsx). `npm run db:up` rồi `npm run demo:1..5`. Demo 4 dùng ScyllaDB (wide-column) — container nặng, khởi động chậm. Tất cả demo dài đã có **spinner/progress** qua `src/lib/progress.ts`.
+  - Narrative benchmark đã chỉnh trung thực: Demo 1 (naive chậm nhất vì row lock + nhiều UPDATE thừa), Demo 3 (**cùng INSERT battle** — so `PG battle + UPSERT LB` vs `PG battle + Redis LB`; idle read gần nhau, spike + throughput lộ lợi tách display), Demo 2 Layer 2 (migration dưới OLTP load).
+
+### Demo 3 — leaderboard (chi tiết quan trọng)
+
+**So sánh công bằng** — mỗi trận đều `INSERT battle_results` (audit). Khác nhau ở rank + display:
+
+| Approach | Rank update | Display read |
+|---|---|---|
+| PG battle + UPSERT LB | PostgreSQL `leaderboard` | PostgreSQL `ORDER BY score` |
+| PG battle + Redis LB | Redis `ZINCRBY` | Redis `ZREVRANGE` |
+
+**Param demo** (`demos/03-leaderboard/index.ts`): `UPDATES=60_000`, `PLAYERS=500`, `CONC=50`, `SPIKE_READERS=40` (client refresh top-10 song song), `POOL_MAX=40` (monolith xếp hàng). Metric spike = avg latency nhiều reader trong lúc flood write.
+
+**Điểm bán khi nói:** không phải "Redis đọc nhanh 200x lúc rảnh" — mà **throughput + tách display khỏi OLTP** khi cùng có audit trail.
 
 ## Lưu ý môi trường
 
-- Repo **chưa init git**. Hỏi người dùng trước khi `git init` / commit.
+- Repo đã có git; **không tự commit** trừ khi người dùng yêu cầu.
 - Có folder `.idea/` (JetBrains) — không đụng tới.

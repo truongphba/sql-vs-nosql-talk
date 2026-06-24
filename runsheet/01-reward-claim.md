@@ -1,4 +1,4 @@
-# Demo 1 — House contention / Race condition (12–15 phút)
+# Demo 1 — Shared reward claim / Race condition (12–15 phút)
 
 ← [Runsheet index](README.md) · Demo 2 → [Hero config](02-hero-config.md)
 
@@ -7,13 +7,13 @@
 **Lệnh:**
 ```bash
 npm run demo:1:naive · demo:1:for-update · demo:1:redis · demo:1:all
-# SQL tay: demos/01-house-contention/queries.sql (race 2-session + FOR UPDATE + pg_locks)
+# SQL tay: demos/01-reward-claim/queries.sql (race 2-session + FOR UPDATE + pg_locks)
 ```
 
 | Phút | Làm gì | Nói gì / điểm nhấn |
 |---|---|---|
-| 0:00–1:30 | Slide D1 + KY VONG | "100 request đập 1 house trống. Đoán: FOR UPDATE chậm nhất, naive lệch vài winner nhưng nhanh, Redis nhanh nhất." |
-| 1:30–4:00 BUG | `demo:1:naive` → ~86 winners | Lặng 3-4s. "86/100 cùng tưởng thắng — không phải chậm, mà **sai**. Oversubscribed." |
+| 0:00–1:30 | Slide D1 + KY VONG | "100 request cùng claim 1 reward pool. Đoán: FOR UPDATE chậm nhất, naive lệch vài winner nhưng nhanh, Redis nhanh nhất." |
+| 1:30–4:00 BUG | `demo:1:naive` → ~86 winners | Lặng 3-4s. "86/100 cùng tưởng claim được — không phải chậm, mà **sai**. Oversubscribed." |
 | *(tuỳ chọn)* | DataGrip Case A 2-session | A1/B1 đều SELECT thấy NULL → A2/B2 cùng UPDATE → cả hai tưởng thắng. Race **sờ được**. |
 | 4:00–6:30 FIX | `demo:1:for-update` → 1 winner | Chỉ `min/avg/p95/max`. "Đúng 1 winner. Cái giá: request sau xếp hàng sau row lock → đuôi dài." |
 | *(tuỳ chọn)* | DataGrip Case B 3-session | console 2 `FOR UPDATE` **treo**; console 3 `pg_blocking_pids` → blocked_by. "Lock có thật." |

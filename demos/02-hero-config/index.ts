@@ -8,6 +8,7 @@
 import { ensurePgDatabase, makePoolForDb, pgDbs } from "../../src/db/pg";
 import { makeMongo } from "../../src/db/mongo";
 import { printTable, dim, title, ok, bad } from "../../src/lib/table";
+import { withSpinner } from "../../src/lib/progress";
 import {
   N, fmtScale, genSeed, seedNorm, seedJsonb, seedMongo,
   readNorm, readJsonb, readMongo,
@@ -24,13 +25,13 @@ async function main(): Promise<void> {
   try {
     title(`DEMO 2 — Hero config · ${fmtScale(N)} hero · ${whaleCount} whale · ~${avgHeroesPerWhale.toFixed(0)} hero/whale`);
     const seed = genSeed();
-    const insNorm = await seedNorm(poolNorm, seed);
-    const insJsonb = await seedJsonb(poolJsonb, seed);
-    const insMongo = await seedMongo(db, seed);
+    const insNorm = await withSpinner("Seed PostgreSQL normalized", () => seedNorm(poolNorm, seed), s);
+    const insJsonb = await withSpinner("Seed PostgreSQL JSONB", () => seedJsonb(poolJsonb, seed), s);
+    const insMongo = await withSpinner("Seed MongoDB", () => seedMongo(db, seed), s);
 
-    const norm = await readNorm(poolNorm);
-    const jsonb = await readJsonb(poolJsonb);
-    const mongo = await readMongo(db);
+    const norm = await withSpinner("Layer 1 · PostgreSQL normalized reads", () => readNorm(poolNorm));
+    const jsonb = await withSpinner("Layer 1 · PostgreSQL JSONB reads", () => readJsonb(poolJsonb));
+    const mongo = await withSpinner("Layer 1 · MongoDB reads", () => readMongo(db));
 
     console.log(dim("\n── Layer 1 · Read patterns ──"));
     printTable(
@@ -43,9 +44,9 @@ async function main(): Promise<void> {
       ],
     );
 
-    const mNorm = await migrateNorm(poolNorm);
-    const mJsonb = await migrateJsonb(poolJsonb);
-    const mMongo = await migrateMongo(db);
+    const mNorm = await withSpinner("Layer 2 · PostgreSQL normalized migration", () => migrateNorm(poolNorm));
+    const mJsonb = await withSpinner("Layer 2 · PostgreSQL JSONB migration", () => migrateJsonb(poolJsonb));
+    const mMongo = await withSpinner("Layer 2 · MongoDB migration", () => migrateMongo(db));
 
     console.log(dim("\n── Layer 2 · Schema evolution — thêm field `trait` ──"));
     console.log("  Part A — đọc field `trait` trên data CŨ (chưa migrate):");

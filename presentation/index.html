@@ -98,50 +98,12 @@
       </div>
     </section>
 
-    <!-- 5 · PHASE 2 — CASE STUDY CONTEXT -->
-    <section>
-      <div class="slide-body">
-        <div class="eyebrow">CASE STUDY</div>
-        <h2>Live game platform</h2>
-        <div class="stats">
-          <div class="stat"><div class="num">1M</div><div class="lbl">User</div></div>
-          <div class="stat"><div class="num">50K</div><div class="lbl">DAU</div></div>
-        </div>
-        <ul class="feat-list">
-          <li>Xây làng · đất/nhà · building system</li>
-          <li>Hero collection — PvP / PvE dungeon</li>
-          <li>Marketplace vật phẩm giữa người chơi</li>
-          <li>House occupancy — 1 user / 1 thời điểm</li>
-          <li>Event spike: đua top PvE, mining pools</li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- 6 · PHASE 2 — ONE GAME, MANY WORKLOADS -->
-    <section>
-      <div class="slide-body">
-        <div class="eyebrow">ONE GAME · MANY WORKLOADS</div>
-        <h3 style="margin-bottom:0.5em">Một game — nhiều workload</h3>
-        <table class="ctable">
-          <thead><tr><th>FEATURE</th><th>WORKLOAD</th></tr></thead>
-          <tbody>
-            <tr><td class="co">House occupancy</td><td class="reason">Race condition · coordination ngắn hạn</td></tr>
-            <tr><td class="co">Hero / building config</td><td class="reason">Flexible schema · nested · evolve nhanh</td></tr>
-            <tr><td class="co">PvP season ranking</td><td class="reason">Read model realtime + settlement đúng tuyệt đối</td></tr>
-            <tr><td class="co">Match history / feed</td><td class="reason">Write-heavy append · đọc theo partition key · scale ngang</td></tr>
-            <tr><td class="co">Admin metrics</td><td class="reason">OLAP · aggregate scan</td></tr>
-            <tr><td class="co" style="color:var(--muted)">Mua bán vật phẩm / inventory</td><td class="reason">Transactional truth (nền)</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- 7 · PHASE 3 — SQL FAMILY -->
+    <!-- 5 · PHASE 3 — SQL FAMILY -->
     <section>
       <div class="slide-body">
         <div class="eyebrow">SQL FAMILY</div>
         <h3 style="margin-bottom:0.5em">Họ nhà SQL — chung: ACID + SQL</h3>
-        <table class="ctable">
+        <table class="ctable fragment fade-up">
           <thead><tr><th>GROUP</th><th>TRAIT</th><th>EXAMPLES</th></tr></thead>
           <tbody>
             <tr><td class="kind">RDBMS (OLTP)</td><td class="reason">schema chặt, JOIN, transaction</td><td>PostgreSQL · MySQL · Oracle · SQL Server · SQLite</td></tr>
@@ -152,12 +114,12 @@
       </div>
     </section>
 
-    <!-- 8 · PHASE 3 — NoSQL FAMILY -->
+    <!-- 6 · PHASE 3 — NoSQL FAMILY -->
     <section>
       <div class="slide-body">
         <div class="eyebrow">NoSQL FAMILY</div>
         <h3 style="margin-bottom:0.35em">Họ nhà NoSQL — đại diện từng loại</h3>
-        <table class="ctable dense">
+        <table class="ctable dense fragment fade-up">
           <thead><tr><th>TYPE</th><th>TRAIT</th><th>EXAMPLES</th><th>FITS</th></tr></thead>
           <tbody>
             <tr><td class="kind" style="color:var(--redis)">Key-Value</td><td class="reason">get/set theo key, cực nhanh</td><td>Redis · Memcached · DynamoDB · etcd</td><td class="reason">cache, session, lock</td></tr>
@@ -172,37 +134,39 @@
       </div>
     </section>
 
-    <!-- 9 · PHASE 3 — TWO GOTCHAS -->
+    <!-- 7 · PHASE 2 — CASE STUDY CONTEXT -->
     <section>
       <div class="slide-body">
-        <div class="eyebrow">TWO GOTCHAS</div>
-        <h3 style="margin-bottom:0.5em">Hai điều dễ nhầm</h3>
-        <div class="split">
-          <div class="lane lane--acid">
-            <div class="role">WIDE-COLUMN vs COLUMNAR OLAP</div>
-            <div class="what">Tên na ná, mục đích ngược nhau. <strong>Cassandra</strong> (wide-column) tối ưu ghi/đọc theo partition key — OLTP. <strong>ClickHouse / DuckDB</strong> (columnar OLAP) tối ưu scan + aggregate — analytics.</div>
-          </div>
-          <div class="lane lane--rt">
-            <div class="role">THE LINE IS BLURRING</div>
-            <div class="what">PostgreSQL nuốt dần nhiều loại: JSONB (document), pgvector (vector), TimescaleDB (time-series), PostGIS (geo). Nhiều khi chỉ cần một extension, không cần DB mới.</div>
-          </div>
+        <div class="eyebrow">CASE STUDY</div>
+        <h2>Live game platform</h2>
+        <div class="stats">
+          <div class="stat"><div class="num">1M</div><div class="lbl">User</div></div>
+          <div class="stat"><div class="num">50K</div><div class="lbl">DAU</div></div>
         </div>
+        <ul class="feat-list">
+          <li>Xây làng · đất/nhà · building system</li>
+          <li>Hero collection — PvP / PvE dungeon</li>
+          <li>Marketplace vật phẩm giữa người chơi</li>
+          <li>Resource occupancy — 1 claim / reward pool</li>
+          <li>Event spike: đua top PvE, mining pools</li>
+        </ul>
       </div>
     </section>
 
-    <!-- 10 · PHASE 3 — 4 REPRESENTATIVES (narrow down → demos) -->
+    <!-- 8 · PHASE 2 — ONE GAME, MANY WORKLOADS -->
     <section>
       <div class="slide-body">
-        <div class="eyebrow">THE 5 WE BENCHMARK</div>
-        <h3 style="margin-bottom:0.5em">Từ cả bản đồ — 5 đại diện chạy demo hôm nay</h3>
+        <div class="eyebrow">ONE GAME · MANY WORKLOADS</div>
+        <h3 style="margin-bottom:0.5em">Một game — nhiều workload</h3>
         <table class="ctable">
-          <thead><tr><th>DB</th><th>FAMILY</th><th>ROLE</th></tr></thead>
+          <thead><tr><th>FEATURE</th><th>WORKLOAD</th></tr></thead>
           <tbody>
-            <tr><td class="co"><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL</td><td>Relational SQL</td><td class="reason">ACID, JOIN, index, transactional truth</td></tr>
-            <tr><td class="co"><span class="dbdot" style="background:var(--mongo)"></span>MongoDB</td><td>Document</td><td class="reason">Schema-flexible, nested object, evolve nhanh</td></tr>
-            <tr><td class="co"><span class="dbdot" style="background:var(--redis)"></span>Redis</td><td>Key-Value / data-structure</td><td class="reason">In-memory, atomic, TTL, Sorted Set</td></tr>
-            <tr><td class="co"><span class="dbdot" style="background:var(--scylla)"></span>ScyllaDB</td><td>Wide-column</td><td class="reason">Write-heavy append, partition read, scale-out</td></tr>
-            <tr><td class="co"><span class="dbdot" style="background:var(--click)"></span>ClickHouse</td><td>OLAP Columnar</td><td class="reason">Aggregate scan, analytics, columnar server</td></tr>
+            <tr><td class="co">Resource occupancy</td><td class="reason">Race condition · claim reward chung</td></tr>
+            <tr><td class="co">Hero / building config</td><td class="reason">Flexible schema · nested · evolve nhanh</td></tr>
+            <tr><td class="co">PvP season ranking</td><td class="reason">Read model realtime + settlement đúng tuyệt đối</td></tr>
+            <tr><td class="co">Match history / feed</td><td class="reason">Write-heavy append · đọc theo partition key · scale ngang</td></tr>
+            <tr><td class="co">Admin metrics</td><td class="reason">OLAP · aggregate scan</td></tr>
+            <tr><td class="co" style="color:var(--muted)">Mua bán vật phẩm / inventory</td><td class="reason">Transactional truth (nền)</td></tr>
           </tbody>
         </table>
       </div>
@@ -213,39 +177,31 @@
       <div class="slide-body center">
         <div class="phase-num">D1</div>
         <div class="eyebrow">DEMO 1 · RACE CONDITION</div>
-        <h1>House contention</h1>
-        <p class="big" style="max-width:26ch">100 user · 1 house trống · cùng một lúc — chỉ <strong>1 người</strong> được thắng</p>
+        <h1>Shared reward claim</h1>
+        <p class="big" style="max-width:28ch">100 user · 1 reward pool · cùng claim — chỉ <strong>1 người</strong> được thắng</p>
       </div>
     </section>
 
     <section>
       <div class="slide-body">
-        <div class="eyebrow">3 APPROACHES</div>
-        <h3 style="margin-bottom:0.5em">Chống race condition — 3 cách</h3>
-        <div class="cards c3">
-          <div class="acard" style="--c:var(--pg)">
-            <h4>Naive PostgreSQL</h4>
-            <div class="sub">read rồi update, không lock</div>
-            <ul class="pc">
-              <li class="no">Nhiều request cùng pass check NULL</li>
-              <li class="no">Nhiều user cùng "thắng" → oversubscribed</li>
-            </ul>
+        <div class="eyebrow">APPROACHES</div>
+        <h3 style="margin-bottom:0.35em">Chống race condition</h3>
+        <p class="approach-scene">100 user · 1 reward pool · cùng claim — chỉ <strong>1 người</strong> được thắng</p>
+        <div class="approach-ladder">
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--pg)">
+            <div class="step">01</div>
+            <div class="body"><h4>Naive PostgreSQL</h4></div>
+            <span class="chip chip--pg">PostgreSQL</span>
           </div>
-          <div class="acard" style="--c:var(--pg)">
-            <h4>PostgreSQL FOR UPDATE</h4>
-            <div class="sub">lock row trong transaction</div>
-            <ul class="pc">
-              <li class="ok">Đúng hoàn toàn — chỉ 1 thắng</li>
-              <li class="no">Spike lớn → xếp hàng sau row lock</li>
-            </ul>
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--pg)">
+            <div class="step">02</div>
+            <div class="body"><h4>PostgreSQL FOR UPDATE</h4></div>
+            <span class="chip chip--pg">PostgreSQL</span>
           </div>
-          <div class="acard" style="--c:var(--redis)">
-            <h4>Redis SET NX EX</h4>
-            <div class="sub">atomic, tự expire 30'</div>
-            <ul class="pc">
-              <li class="ok">Không lock, không queue — cực nhanh</li>
-              <li class="no">Không phải truth — phải ghi Postgres sau</li>
-            </ul>
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--redis)">
+            <div class="step">03</div>
+            <div class="body"><h4>Redis SET NX EX</h4></div>
+            <span class="chip chip--redis">Redis</span>
           </div>
         </div>
       </div>
@@ -254,17 +210,16 @@
     <section>
       <div class="slide-body">
         <div class="eyebrow">BENCHMARK · KY VONG</div>
-        <h3 style="margin-bottom:0.4em">100 request cùng hit 1 house</h3>
+        <h3 style="margin-bottom:0.4em">100 request cùng claim 1 reward pool</h3>
         <div class="guess"><b>KY VONG</b><span class="myth">FOR UPDATE chậm nhất · naive lệch vài winner nhưng nhanh · Redis nhanh nhất</span></div>
         <table class="ctable">
           <thead><tr><th>APPROACH</th><th>WINNERS</th><th>LATENCY</th><th>CORRECTNESS</th></tr></thead>
-          <tbody class="fragment">
+          <tbody>
             <tr><td class="co">Naive PostgreSQL</td><td>~3</td><td>~10ms</td><td style="color:var(--redis)">FAIL nhẹ</td></tr>
             <tr><td class="co">PostgreSQL FOR UPDATE</td><td>1</td><td style="color:var(--redis)">~300ms (chậm nhất)</td><td style="color:var(--mongo)">Correct</td></tr>
             <tr class="hl"><td class="co">Redis SET NX</td><td>1</td><td style="color:var(--mongo)">~30ms (nhanh nhất)</td><td style="color:var(--mongo)">Correct</td></tr>
           </tbody>
         </table>
-        <div class="note">KY VONG · SO THAT CHAY O TERMINAL</div>
       </div>
     </section>
 
@@ -311,36 +266,24 @@
 
     <section>
       <div class="slide-body">
-        <div class="eyebrow">3 APPROACHES</div>
-        <h3 style="margin-bottom:0.5em">Lưu config — 3 cách</h3>
-        <div class="cards c3">
-          <div class="acard" style="--c:var(--pg)">
-            <h4>PostgreSQL thuần</h4>
-            <div class="sub">normalized, nhiều bảng</div>
-            <ul class="pc">
-              <li class="ok">Constraint + FK chặt</li>
-              <li class="no">Thêm field → ALTER TABLE, migration chậm</li>
-              <li class="no">Hero → owner phải JOIN bảng users</li>
-            </ul>
+        <div class="eyebrow">APPROACHES</div>
+        <h3 style="margin-bottom:0.35em">Lưu hero / building config</h3>
+        <p class="approach-scene">Config nested + owner info, optional fields — <strong>evolve mỗi tuần</strong></p>
+        <div class="approach-ladder">
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--pg)">
+            <div class="step">01</div>
+            <div class="body"><h4>PostgreSQL normalized</h4></div>
+            <span class="chip chip--pg">PostgreSQL</span>
           </div>
-          <div class="acard" style="--c:var(--pg)">
-            <h4>PostgreSQL JSONB</h4>
-            <div class="sub">cột config JSONB</div>
-            <ul class="pc">
-              <li class="ok">Flexible + vẫn ACID, 1 DB duy nhất</li>
-              <li class="ok">Index được: B-tree expr + GIN</li>
-              <li class="no">Owner snapshot duplicate, app tự validate</li>
-            </ul>
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--pg)">
+            <div class="step">02</div>
+            <div class="body"><h4>PostgreSQL JSONB</h4></div>
+            <span class="chip chip--pg">PostgreSQL</span>
           </div>
-          <div class="acard" style="--c:var(--mongo)">
-            <h4>MongoDB</h4>
-            <div class="sub">document tự nhiên</div>
-            <ul class="pc">
-              <li class="ok">DX tốt nhất khi schema đổi liên tục</li>
-              <li class="ok">Đọc hero + owner rất tự nhiên</li>
-              <li class="no">Owner đổi tên → phải sync snapshot</li>
-              <li class="no">Thêm 1 DB phải maintain</li>
-            </ul>
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--mongo)">
+            <div class="step">03</div>
+            <div class="body"><h4>MongoDB document</h4></div>
+            <span class="chip chip--mongo">MongoDB</span>
           </div>
         </div>
       </div>
@@ -353,13 +296,12 @@
         <div class="guess"><b>KY VONG</b><span class="myth">Mongo nhanh mọi hướng · SQL JOIN luôn chậm</span></div>
         <table class="ctable dense">
           <thead><tr><th>OPERATION</th><th>PG PLAIN</th><th>PG JSONB</th><th>MONGO</th></tr></thead>
-          <tbody class="fragment">
+          <tbody>
             <tr><td class="co">Bulk insert 100K</td><td class="reason">~4s</td><td class="reason">~3.5s</td><td class="reason" style="color:var(--mongo)">~1.2s nhanh nhất</td></tr>
             <tr><td class="co">Hero full view (xuôi)</td><td class="reason" style="color:var(--redis)">~3ms · JOIN chậm</td><td class="reason">~0.5ms</td><td class="reason" style="color:var(--mongo)">~0.5ms nhanh</td></tr>
             <tr class="hl"><td class="co">Owner→heroes (ngược)</td><td class="reason" style="color:var(--redis)">~10ms · JOIN chậm</td><td class="reason">~8ms</td><td class="reason" style="color:var(--mongo)">~1ms nhanh nhất</td></tr>
           </tbody>
         </table>
-        <div class="note">KY VONG · SO THAT CHAY O TERMINAL</div>
       </div>
     </section>
 
@@ -370,13 +312,12 @@
         <div class="guess"><b>KY VONG</b><span class="myth">backfill nhanh = migration tốt · thêm field nào cũng như nhau · không cái nào chặn traffic</span></div>
         <table class="ctable dense">
           <thead><tr><th>ADD FIELD</th><th>EXPECT TIME</th><th>BLOCK OLTP?</th></tr></thead>
-          <tbody class="fragment">
+          <tbody>
             <tr><td class="co">PG norm · thêm cột</td><td class="reason">~nhanh</td><td class="reason" style="color:var(--mongo)">no</td></tr>
             <tr><td class="co">PG JSONB · thêm field</td><td class="reason">~nhanh</td><td class="reason" style="color:var(--mongo)">no</td></tr>
             <tr><td class="co">Mongo · thêm field</td><td class="reason">~nhanh</td><td class="reason" style="color:var(--mongo)">no</td></tr>
           </tbody>
         </table>
-        <div class="note">KY VONG · SO THAT O TERMINAL (demo:2:layer2 · demo:2:lock)</div>
       </div>
     </section>
 
@@ -423,45 +364,40 @@
 
     <section>
       <div class="slide-body">
-        <div class="eyebrow">2 APPROACHES</div>
-        <h3 style="margin-bottom:0.5em">Top N realtime — 2 cách</h3>
-        <div class="cards c2">
-          <div class="acard" style="--c:var(--pg)">
-            <h4>PostgreSQL UPSERT + ORDER BY</h4>
-            <div class="sub">có INDEX (score DESC)</div>
-            <ul class="pc">
-              <li class="ok">Consistent, audit trail; top-N nhanh nếu có index</li>
-              <li class="no">Tải leaderboard đè chung OLTP; chỉ chậm khi scale rất lớn / thiếu index</li>
-            </ul>
+        <div class="eyebrow">APPROACHES</div>
+        <h3 style="margin-bottom:0.35em">Top N realtime</h3>
+        <p class="approach-scene">Top 100 hiển thị realtime · cuối season top 10 nhận reward</p>
+        <div class="approach-ladder">
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--pg)">
+            <div class="step">01</div>
+            <div class="body"><h4>PG battle + UPSERT leaderboard</h4></div>
+            <span class="chip chip--pg">PostgreSQL</span>
           </div>
-          <div class="acard" style="--c:var(--redis)">
-            <h4>Redis Sorted Set</h4>
-            <div class="sub">ZADD O(log N) · ZREVRANGE O(log N + M)</div>
-            <ul class="pc">
-              <li class="ok">Write throughput ~5x · tách tải khỏi OLTP · O(log N)</li>
-              <li class="no">In-memory · không audit · không query phức tạp</li>
-            </ul>
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--accent)">
+            <div class="step">02</div>
+            <div class="body"><h4>PG battle + Redis display</h4></div>
+            <span class="chip chip--pg">PostgreSQL</span>
+            <span class="chip chip--redis">Redis</span>
           </div>
         </div>
+        <p class="approach-scene" style="margin-top:0.6em">Cùng <strong>INSERT battle</strong> mỗi trận — chỉ khác chỗ cập nhật rank &amp; đọc top-N</p>
       </div>
     </section>
 
     <section>
       <div class="slide-body">
         <div class="eyebrow">BENCHMARK · KY VONG</div>
-        <h3 style="margin-bottom:0.45em">100K update · đọc top-10: idle vs spike</h3>
-        <div class="guess"><b>KY VONG</b><span class="myth">Redis đọc top-N nhanh hơn ~200x · PG spike 500ms-1s</span></div>
+        <h3 style="margin-bottom:0.45em">60K trận · 40 reader spike · cùng INSERT battle</h3>
+        <div class="guess"><b>KY VONG</b><span class="myth">Cùng audit rồi thì tách Redis không khác · PG đủ nhanh</span></div>
         <table class="ctable">
-          <thead><tr><th></th><th>POSTGRESQL (INDEX)</th><th>REDIS SORTED SET</th></tr></thead>
-          <tbody class="fragment">
-            <tr class="hl"><td class="co">100K update (throughput)</td><td class="reason">~2.8s</td><td class="reason" style="color:var(--mongo)">~0.5s</td></tr>
-            <tr><td class="co">top-10 read · idle</td><td class="reason" style="color:var(--redis)">~20ms</td><td class="reason" style="color:var(--mongo)">~0.1ms (~200x)</td></tr>
-            <tr><td class="co">top-10 read · dưới write spike</td><td class="reason" style="color:var(--redis)">~500ms-1s</td><td class="reason" style="color:var(--mongo)">~0.4ms</td></tr>
-            <tr><td class="co">Data sau restart</td><td class="reason" style="color:var(--mongo)">✓</td><td class="reason">cần AOF/RDB</td></tr>
-            <tr><td class="co">Audit trail</td><td class="reason" style="color:var(--mongo)">✓</td><td class="reason" style="color:var(--redis)">✗</td></tr>
+          <thead><tr><th></th><th>PG BATTLE + UPSERT LB</th><th>PG BATTLE + REDIS LB</th></tr></thead>
+          <tbody>
+            <tr class="hl"><td class="co">60K trận (throughput)</td><td class="reason" style="color:var(--redis)">~5.6s</td><td class="reason" style="color:var(--mongo)">~3.4s</td></tr>
+            <tr><td class="co">top-10 read · idle</td><td class="reason">~0.2ms</td><td class="reason">~0.2ms</td></tr>
+            <tr><td class="co">top-10 read · dưới write spike</td><td class="reason" style="color:var(--redis)">~3.4ms</td><td class="reason" style="color:var(--mongo)">~0.8ms</td></tr>
+            <tr><td class="co">Display read path</td><td class="reason">PostgreSQL</td><td class="reason" style="color:var(--mongo)">Redis Sorted Set</td></tr>
           </tbody>
         </table>
-        <div class="note">KY VONG · SO THAT CHAY O TERMINAL</div>
       </div>
     </section>
 
@@ -493,26 +429,19 @@
 
     <section>
       <div class="slide-body">
-        <div class="eyebrow">2 APPROACHES</div>
-        <h3 style="margin-bottom:0.5em">Lưu match history — 2 cách</h3>
-        <div class="cards c2">
-          <div class="acard" style="--c:var(--pg)">
-            <h4>PostgreSQL</h4>
-            <div class="sub">bảng + index (player_id, time)</div>
-            <ul class="pc">
-              <li class="ok">Query bất kỳ: JOIN · ad-hoc · thêm index tuỳ ý</li>
-              <li class="ok">last-50 nhanh nhờ index</li>
-              <li class="no">Write throughput trần 1 node (B-tree + WAL)</li>
-            </ul>
+        <div class="eyebrow">APPROACHES</div>
+        <h3 style="margin-bottom:0.35em">Lưu match history</h3>
+        <p class="approach-scene">Append-only · ghi cực nhiều · đọc theo player — đúng họ <strong>Discord</strong> ở Hook</p>
+        <div class="approach-ladder">
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--pg)">
+            <div class="step">01</div>
+            <div class="body"><h4>PostgreSQL + index</h4></div>
+            <span class="chip chip--pg">PostgreSQL</span>
           </div>
-          <div class="acard" style="--c:var(--scylla)">
-            <h4>ScyllaDB <span style="font-size:0.6em; color:var(--muted)">(wide-column)</span></h4>
-            <div class="sub">PK ((player_id), match_time)</div>
-            <ul class="pc">
-              <li class="ok">Write cao (LSM, shard-per-core) + scale-out tuyến tính</li>
-              <li class="ok">Partition read phẳng — clustering sort sẵn</li>
-              <li class="no">No JOIN, no ad-hoc — query-first, mỗi pattern 1 bảng</li>
-            </ul>
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--scylla)">
+            <div class="step">02</div>
+            <div class="body"><h4>ScyllaDB wide-column</h4></div>
+            <span class="chip chip--scylla">ScyllaDB</span>
           </div>
         </div>
       </div>
@@ -525,13 +454,110 @@
         <div class="guess"><b>KY VONG</b><span class="myth">ScyllaDB nhanh hơn Postgres mọi mặt (write + read + ad-hoc)</span></div>
         <table class="ctable">
           <thead><tr><th>OPERATION</th><th>POSTGRESQL</th><th>SCYLLADB</th></tr></thead>
-          <tbody class="fragment">
+          <tbody>
             <tr class="hl"><td class="co">Write 200K event</td><td class="reason">~4s</td><td class="reason" style="color:var(--mongo)">~1.5s nhanh hơn</td></tr>
             <tr><td class="co">last-50 partition read</td><td class="reason">~2ms</td><td class="reason" style="color:var(--mongo)">~0.3ms nhanh hơn</td></tr>
             <tr><td class="co">Ad-hoc theo opponent</td><td class="reason">~chậm</td><td class="reason" style="color:var(--mongo)">~nhanh hơn</td></tr>
           </tbody>
         </table>
-        <div class="note">KY VONG · SO THAT CHAY O TERMINAL (demo:4) · 1 NODE + DEV-MODE</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">STORAGE LAYOUT</div>
+        <h3 style="margin-bottom:0.4em">Cùng cột — khác cách data nằm trên disk</h3>
+        <div class="split struct-split">
+          <div class="lane lane--acid">
+            <div class="role">POSTGRESQL · matches</div>
+            <div class="struct-heap">
+              <div class="struct-label">HEAP · row lộn xộn</div>
+              <div class="struct-rows">
+                <span class="srow">p=3 · t=09:01</span>
+                <span class="srow">p=1 · t=10:00</span>
+                <span class="srow hl">p=1 · t=09:30</span>
+                <span class="srow">p=2 · t=08:00</span>
+                <span class="srow">p=1 · t=08:15</span>
+              </div>
+            </div>
+            <div class="struct-plus">+</div>
+            <div class="struct-idx">
+              <div class="struct-label">INDEX · (player_id, time)</div>
+              <div class="struct-idx-tree">
+                <span>p=1 → rows</span>
+                <span class="hl">↳ sort theo time</span>
+                <span>p=2 → rows</span>
+                <span>p=3 → rows</span>
+              </div>
+            </div>
+            <div class="struct-q struct-q--ok fragment fade-up">WHERE player_id=1 ORDER BY time DESC LIMIT 50 → <b>index seek</b></div>
+            <div class="struct-q struct-q--ok fragment fade-up">WHERE opponent=42 → <b>thêm index</b> là chạy</div>
+          </div>
+          <div class="lane lane--scylla">
+            <div class="role">SCYLLADB · matches_by_player</div>
+            <div class="struct-parts">
+              <div class="struct-part">
+                <div class="struct-part-hd">PK player_id=<b>1</b></div>
+                <div class="struct-part-rows">
+                  <span class="crow">10:00 · m99</span>
+                  <span class="crow">09:30 · m88</span>
+                  <span class="crow">08:15 · m77</span>
+                </div>
+                <div class="struct-part-ft">clustering · time DESC</div>
+              </div>
+              <div class="struct-part struct-part--dim">
+                <div class="struct-part-hd">PK player_id=<b>2</b></div>
+                <div class="struct-part-rows">
+                  <span class="crow dim">08:00 · m66</span>
+                </div>
+              </div>
+              <div class="struct-part struct-part--dim">
+                <div class="struct-part-hd">PK player_id=<b>3</b></div>
+                <div class="struct-part-rows">
+                  <span class="crow dim">09:01 · m55</span>
+                </div>
+              </div>
+            </div>
+            <div class="struct-q struct-q--ok fragment fade-up">WHERE player_id=1 LIMIT 50 → <b>1 partition</b>, đã sort</div>
+            <div class="struct-q struct-q--no fragment fade-up">WHERE opponent=42 → <b>từ chối</b> (không biết partition nào)</div>
+          </div>
+        </div>
+        <div class="note">COT GIONG NHAU TRONG DATAGRIP · KHAC NHAU O PARTITION + CLUSTERING VS HEAP + INDEX</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">SCALE-OUT · DIAGRAM ONLY</div>
+        <h3 style="margin-bottom:0.45em">Thêm node → thêm write capacity</h3>
+        <div class="split scale-split">
+          <div class="lane lane--acid">
+            <div class="role">POSTGRESQL</div>
+            <div class="scale-stack">
+              <div class="scale-box scale-box--single">1 PRIMARY</div>
+              <div class="scale-ar">↓ event vượt 1 máy</div>
+              <div class="scale-box scale-box--muted">partition table</div>
+              <div class="scale-ar">↓ vẫn chưa đủ</div>
+              <div class="scale-box scale-box--bad">sharding thủ công</div>
+            </div>
+            <div class="scale-foot">Write đụng trần 1 node · read replica <strong>không</strong> cứu write spike</div>
+          </div>
+          <div class="lane lane--scylla">
+            <div class="role">SCYLLADB CLUSTER</div>
+            <div class="cluster-row">
+              <span class="node-chip">N1</span>
+              <span class="node-chip">N2</span>
+              <span class="node-chip fragment fade-up">N3</span>
+              <span class="node-chip node-chip--add fragment fade-up">+ NODE</span>
+            </div>
+            <div class="token-bar fragment fade-up">
+              <span class="t1"></span><span class="t2"></span><span class="t3"></span>
+            </div>
+            <div class="scale-callout fragment fade-up">consistent hashing · mỗi <code>player_id</code> → 1 partition · ghi song song nhiều node</div>
+            <div class="scale-foot">+ node ≈ + token ranges ≈ + write throughput · RF + multi-DC = HA</div>
+          </div>
+        </div>
+        <div class="note">DEMO LOCAL = 1 NODE · TERMINAL CHI MINH HOA WRITE + CONTRACT · DISCORD = NGHIN NODE</div>
       </div>
     </section>
 
@@ -562,6 +588,43 @@
 
     <section>
       <div class="slide-body">
+        <div class="eyebrow">APPROACHES</div>
+        <h3 style="margin-bottom:0.35em">Chạy analytics dashboard</h3>
+        <p class="approach-scene">DAU · win rate · region — aggregate trên <strong>50–100 triệu</strong> battle log rows</p>
+        <div class="approach-ladder">
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--pg)">
+            <div class="step">01</div>
+            <div class="body"><h4>PostgreSQL aggregate</h4></div>
+            <span class="chip chip--pg">PostgreSQL</span>
+          </div>
+          <div class="aprow aprow--bare fragment fade-up" style="--c:var(--click)">
+            <div class="step">02</div>
+            <div class="body"><h4>ClickHouse columnar</h4></div>
+            <span class="chip chip--click">ClickHouse</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">BENCHMARK · KY VONG</div>
+        <h3 style="margin-bottom:0.45em">Aggregate trên 5 triệu battle log</h3>
+        <div class="guess"><b>KY VONG</b><span class="myth">ClickHouse (columnar) nhanh hơn Postgres ~10-40x cho aggregate scan</span></div>
+        <table class="ctable">
+          <thead><tr><th>QUERY</th><th>POSTGRESQL</th><th>CLICKHOUSE</th></tr></thead>
+          <tbody>
+            <tr><td class="co">Hero win rate (90 ngày)</td><td class="reason">~200ms</td><td class="reason" style="color:var(--mongo)">~16ms</td></tr>
+            <tr><td class="co">DAU theo ngày</td><td class="reason">~2.3s</td><td class="reason" style="color:var(--mongo)">~50ms</td></tr>
+            <tr><td class="co">Battles theo region+giờ</td><td class="reason">~240ms</td><td class="reason" style="color:var(--mongo)">~24ms</td></tr>
+            <tr class="hl"><td class="co">Chạy chung OLTP?</td><td class="reason" style="color:var(--redis)">tranh CPU/IO với game</td><td class="reason" style="color:var(--mongo)">engine riêng — không đụng</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
         <div class="eyebrow">OLTP vs OLAP</div>
         <h3 style="margin-bottom:0.5em">Hai pattern ngược nhau — không tối ưu cùng lúc</h3>
         <div class="cards c2">
@@ -582,24 +645,6 @@
             </ul>
           </div>
         </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="slide-body">
-        <div class="eyebrow">BENCHMARK · KY VONG</div>
-        <h3 style="margin-bottom:0.45em">Aggregate trên 5 triệu battle log</h3>
-        <div class="guess"><b>KY VONG</b><span class="myth">ClickHouse (columnar) nhanh hơn Postgres ~10-40x cho aggregate scan</span></div>
-        <table class="ctable">
-          <thead><tr><th>QUERY</th><th>POSTGRESQL</th><th>CLICKHOUSE</th></tr></thead>
-          <tbody class="fragment">
-            <tr><td class="co">Hero win rate (90 ngày)</td><td class="reason">~200ms</td><td class="reason" style="color:var(--mongo)">~16ms</td></tr>
-            <tr><td class="co">DAU theo ngày</td><td class="reason">~2.3s</td><td class="reason" style="color:var(--mongo)">~50ms</td></tr>
-            <tr><td class="co">Battles theo region+giờ</td><td class="reason">~240ms</td><td class="reason" style="color:var(--mongo)">~24ms</td></tr>
-            <tr class="hl"><td class="co">Chạy chung OLTP?</td><td class="reason" style="color:var(--redis)">tranh CPU/IO với game</td><td class="reason" style="color:var(--mongo)">engine riêng — không đụng</td></tr>
-          </tbody>
-        </table>
-        <div class="note">KY VONG · SO THAT CHAY O TERMINAL</div>
       </div>
     </section>
 
@@ -755,10 +800,10 @@
         <div class="eyebrow">STEP 3 · PICK</div>
         <h3 style="margin-bottom:0.4em">Câu hỏi → DB → ví dụ trong game</h3>
         <table class="ctable dense">
-          <thead><tr><th>QUESTION</th><th>PICK</th><th>PIXILAND</th></tr></thead>
+          <thead><tr><th>QUESTION</th><th>PICK</th><th>EXAMPLE</th></tr></thead>
           <tbody>
             <tr><td class="co">ACID / source of truth?</td><td><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL</td><td class="reason">user, ví in-game, vật phẩm, kết quả trận</td></tr>
-            <tr><td class="co">Coordination ngắn hạn?</td><td><span class="dbdot" style="background:var(--redis)"></span>Redis</td><td class="reason">house lock, cooldown, rate limit</td></tr>
+            <tr><td class="co">Coordination ngắn hạn?</td><td><span class="dbdot" style="background:var(--redis)"></span>Redis</td><td class="reason">reward claim lock, cooldown, rate limit</td></tr>
             <tr><td class="co">Realtime rank / read model?</td><td><span class="dbdot" style="background:var(--redis)"></span>Redis Sorted Set</td><td class="reason">PvP leaderboard display</td></tr>
             <tr><td class="co">Aggregate scan / analytics?</td><td><span class="dbdot" style="background:var(--click)"></span>ClickHouse / DuckDB</td><td class="reason">dashboard, win rate, DAU</td></tr>
             <tr><td class="co">Schema nested + cần JOIN?</td><td><span class="dbdot" style="background:var(--pg)"></span>Postgres JSONB</td><td class="reason">hero config, building config</td></tr>
@@ -770,14 +815,14 @@
 
     <section>
       <div class="slide-body">
-        <div class="eyebrow">PIXILAND STACK</div>
+        <div class="eyebrow">GAME STACK</div>
         <h3 style="margin-bottom:0.4em">5 vai trò · 3 engine</h3>
         <table class="ctable dense">
           <thead><tr><th>ENGINE</th><th>USED FOR</th><th>ROLE</th></tr></thead>
           <tbody>
             <tr><td class="co"><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL</td><td class="reason">user, ví in-game, vật phẩm, kết quả trận</td><td>transactional truth</td></tr>
             <tr><td class="co"><span class="dbdot" style="background:var(--pg)"></span>PostgreSQL JSONB</td><td class="reason">hero config, building config</td><td>flexible truth</td></tr>
-            <tr><td class="co"><span class="dbdot" style="background:var(--redis)"></span>Redis</td><td class="reason">house lock, resource counter</td><td>coordination</td></tr>
+            <tr><td class="co"><span class="dbdot" style="background:var(--redis)"></span>Redis</td><td class="reason">reward claim lock, resource counter</td><td>coordination</td></tr>
             <tr><td class="co"><span class="dbdot" style="background:var(--redis)"></span>Redis Sorted Set</td><td class="reason">PvP leaderboard display</td><td>read model</td></tr>
             <tr><td class="co"><span class="dbdot" style="background:var(--click)"></span>ClickHouse/DuckDB</td><td class="reason">dashboard, analytics, win rate</td><td>analytics layer</td></tr>
           </tbody>

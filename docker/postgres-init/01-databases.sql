@@ -1,3 +1,3 @@
--- Demo 2: tách 2 approach PostgreSQL sang DB riêng để so dung lượng dễ hơn.
-CREATE DATABASE pixiland_norm;
-CREATE DATABASE pixiland_jsonb;
+-- Extra Postgres DBs for Demo 2 (norm vs JSONB). Main DB `gamedb` from POSTGRES_DB.
+CREATE DATABASE gamedb_norm;
+CREATE DATABASE gamedb_jsonb;

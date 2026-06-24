@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Demo 4 — Match history (wide-column) · chạy tay
 --   CQL  → ScyllaDB  (DataGrip: data source Cassandra/Scylla, host localhost:59042)
---   SQL  → PostgreSQL (database pixiland) — phần ở cuối, đánh dấu [PG]
+--   SQL  → PostgreSQL (database gamedb) — phần ở cuối, đánh dấu [PG]
 -- Chạy `npm run demo:4:seed` trước để có dữ liệu.
 -- ============================================================================
 
@@ -9,7 +9,7 @@
 -- ╔════════════════════════════════════════════════════════════════════════╗
 -- ║ SCYLLA · MÔ HÌNH query-first (CQL)                                       ║
 -- ╚════════════════════════════════════════════════════════════════════════╝
-USE pixiland;
+USE gamedb;
 
 -- Bảng được thiết kế THEO QUERY: partition = player_id, clustering = thời gian giảm dần.
 -- DESCRIBE để thấy partition key vs clustering key:
@@ -50,7 +50,7 @@ SELECT player_id, match_id FROM matches_by_player WHERE match_time > '2025-01-01
 
 -- ╔════════════════════════════════════════════════════════════════════════╗
 -- ║ [PG] PostgreSQL — cùng workload, linh hoạt hơn nhưng 1-node ceiling      ║
--- ║ DataGrip: đổi sang data source Postgres (database pixiland)              ║
+-- ║ DataGrip: đổi sang data source Postgres (database gamedb)              ║
 -- ╚════════════════════════════════════════════════════════════════════════╝
 
 -- Partition read tương đương (index (player_id, match_time DESC)):
