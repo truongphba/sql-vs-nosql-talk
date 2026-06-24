@@ -8,7 +8,7 @@
 - **Chủ đề:** SQL vs NoSQL — chọn storage theo workload, consistency và scale
 - **Bối cảnh:** Live GameFi platform — Pixiland (1M users, 50K DAU)
 - **Định dạng:** Bài toán → Thiết kế → Benchmark → Scale bottleneck → Takeaway
-- **DB cover:** PostgreSQL · MongoDB · Redis · DuckDB
+- **DB cover:** PostgreSQL · MongoDB · Redis · ScyllaDB · ClickHouse
 - **Slide mở đầu:** đặt câu hỏi tranh luận "SQL hay NoSQL — cái nào thật sự tốt hơn?", dùng badge đại diện rộng hơn cho landscape: PostgreSQL · MySQL · MongoDB · Redis · Cassandra · ClickHouse.
 
 ---
@@ -47,7 +47,7 @@ Ngay sau đó chuyển sang slide `THE DEBATE` với câu hỏi mà ai cũng ngh
 
 Đừng giải thích lý do ngay. Trước tiên cho slide hiện **chỉ logo công ty + DB lựa chọn**, chưa bật lý do. Cho mọi người tranh luận nhanh: cùng scale lớn, ai đang chọn đúng hơn?
 
-> "Instagram — hàng trăm triệu user — chạy trên **PostgreSQL**, một relational DB. Discord — cũng khổng lồ — thì bỏ SQL, chạy **Cassandra**, một NoSQL wide-column. Cùng tầm scale, chọn ngược nhau hoàn toàn. Ai sai?"
+> "Instagram — hàng trăm triệu user — chạy trên **PostgreSQL**, một relational DB. Discord — cũng khổng lồ — thì bỏ SQL, chạy **ScyllaDB**, một NoSQL wide-column. Cùng tầm scale, chọn ngược nhau hoàn toàn. Ai sai?"
 
 Khoảng lặng 10–15 giây để mọi người đoán lý do. Sau đó reveal lý do lựa chọn trên slide, rồi chốt:
 
@@ -71,7 +71,7 @@ Không dùng slide thesis/bridge riêng nữa. Chốt bằng lời ngay sau twis
 
 > **Ghi chú độ chính xác (kẻo bị bắt bẻ):**
 > - Instagram: nói "data quan hệ chặt, cần consistency" — tránh nói "JOIN phức tạp" (Instagram shard Postgres và *tránh* cross-shard join).
-> - Discord: con số là minh hoạ — nói "hàng tỷ message" thay vì cam kết "4 tỷ/ngày". Slide dùng Cassandra cho dễ nhận diện family wide-column; nếu hỏi sâu: Discord đi MongoDB → Cassandra → ScyllaDB.
+> - Discord: con số là minh hoạ — nói "hàng tỷ message" thay vì cam kết "4 tỷ/ngày". Slide dùng **ScyllaDB** (đúng nơi Discord dừng lại, và là DB của Demo 5); nếu hỏi sâu lộ trình: Discord đi MongoDB → Cassandra → ScyllaDB. Cassandra là trạm giữa đường, Scylla là đích — nên Hook chốt thẳng Scylla để khớp callback ở Demo 5.
 > - Home Feed trên slide dùng "Redis / feed cache" vì nguồn public cũ về Instagram stack có nhắc Redis cho fast feeds. Không khẳng định kiến trúc hiện tại của Instagram vẫn y nguyên; mục tiêu là phân biệt source of truth quan hệ với cache/read model phục vụ đọc nhanh.
 
 ---
@@ -98,6 +98,7 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 | House occupancy (1 user/lúc) | Race condition · coordination ngắn hạn |
 | Hero / building / item config | Flexible schema · nested · evolve nhanh |
 | PvP season ranking | Read model realtime + settlement đúng tuyệt đối |
+| Match history / activity feed | Write-heavy append-only · đọc theo partition key · scale ngang |
 | Admin metrics (DAU, win rate…) | OLAP · aggregate scan |
 | Land NFT · marketplace (Ronin) | Transactional truth (nền) |
 
@@ -144,7 +145,8 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 | **PostgreSQL** | Relational SQL | ACID, JOIN, index, transactional truth |
 | **MongoDB** | Document | Schema-flexible, nested object, evolve nhanh |
 | **Redis** | Key-Value / data-structure | In-memory, atomic, TTL, Sorted Set |
-| **DuckDB** | OLAP Columnar | Aggregate scan, analytics, lightweight |
+| **ScyllaDB** | Wide-column | Write-heavy append, partition read, scale-out (Demo 5) |
+| **ClickHouse** | OLAP Columnar | Aggregate scan, analytics, columnar server (Demo 4) |
 
 > Buổi này không cover hết — Wide-column, Graph, Search… sẽ được nhắc khi liên quan.
 
@@ -157,7 +159,10 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 | 1 House | `pixiland` · bảng `houses` | key `house:1` | — |
 | 2 Hero config | `pixiland_norm` + `pixiland_jsonb` (2 DB riêng) | — | DB `pixiland` · `users` / `wallets` / `heroes` |
 | 3 Leaderboard | `pixiland` · bảng `leaderboard` | key `lb` | — |
-| 4 Analytics | `pixiland` · `battle_logs` | — | — (DuckDB in-process) |
+| 4 Analytics | `pixiland` · `battle_logs` | — | — |
+| 5 Match history | `pixiland` · `matches` | — | — |
+
+> Demo 4 thêm **ClickHouse** (container, DB `default` · bảng `battle_logs`); Demo 5 thêm **ScyllaDB** (container, keyspace `pixiland` · bảng `matches_by_player`). Cả hai là engine riêng, không nằm trong cột Postgres/Redis/Mongo ở trên.
 
 **Không xung đột:** demo 1 và 3 dùng chung DB `pixiland` nhưng bảng/key khác nhau; demo 2 tách 2 DB Postgres để so dung lượng embed vs normalized.
 
@@ -187,6 +192,7 @@ npm run demo:1:naive        # FAIL — nhiều winners, race lộ rõ
 npm run demo:1:for-update   # đúng 1 winner, chậm hơn
 npm run demo:1:redis        # đúng 1 winner, nhanh nhất
 npm run demo:1:all          # rehearsal: cả 3 + bảng tổng
+# SQL chạy tay trên DataGrip (diễn race + FOR UPDATE 2 session + pg_locks): demos/01-house-contention/queries.sql
 ```
 
 Mỗi lệnh reset state (`TRUNCATE` / `DEL`) — chạy lại nhiều lần vẫn ổn.
@@ -207,17 +213,19 @@ Atomic ở tầng Redis — set key nếu chưa tồn tại, expire sau 30 phút
 
 ### Benchmark — 100 concurrent requests
 
-| Approach | Winners | Latency (avg · max) | Correctness |
+| Approach | Winners | min · avg · max | Correctness |
 |---|---|---|---|
-| Naive PostgreSQL | ~80 ❌ | ~100ms · thấp | FAIL — oversubscribed |
-| PostgreSQL FOR UPDATE | 1 ✓ | ~avg ms · **max >> avg** | Correct — row lock queue |
-| Redis SET NX | 1 ✓ | ~avg ms · max ≈ min | Correct — không queue lock |
+| Naive PostgreSQL | ~86 ❌ | ~73 · 81 · 93ms (**spread nhỏ — ai cũng chậm**) | FAIL — oversubscribed |
+| PostgreSQL FOR UPDATE | 1 ✓ | ~4 · 21 · 37ms (**spread rộng — đuôi dài**) | Correct — row lock queue |
+| Redis SET NX | 1 ✓ | ~0.4 · 1.3 · 2.1ms (latency phẳng) | Correct — không queue lock |
 
-> Script in thêm **min / avg / p95 / max** mỗi case. Case 2 trade-off lộ ở **max >> avg** (request cuối xếp hàng sau `FOR UPDATE`). Case 3 **spread nhỏ** — không hot row lock trên Postgres.
+> Script in thêm **min / avg / p95 / max** mỗi case. Case 2 trade-off lộ ở **spread rộng** (request cuối xếp hàng sau `FOR UPDATE`). Case 3 **latency phẳng** — không hot row lock trên Postgres.
 
-> Redis nhanh hơn FOR UPDATE ~7x; naive thì vừa chậm vừa sai. Nhưng đây chưa phải câu chuyện đầy đủ.
+> **Cú twist nhất — naive lại CHẬM NHẤT:** `min` của naive (~73ms) còn cao hơn `max` của FOR UPDATE (~37ms) — request *nhanh nhất* của naive vẫn chậm hơn request *chậm nhất* của FOR UPDATE.
 >
-> *Số đo thật trên localhost, 100 request đồng thời. Lưu ý: ở scale này FOR UPDATE vẫn nhanh (~22ms) — chi phí "xếp hàng sau row lock" chỉ lộ rõ khi contention cao hơn nhiều (hàng nghìn request + network latency). Điều luôn đúng bất kể scale: naive oversubscribed, Redis né lock nên nhanh nhất.*
+> **Tại sao "naive không lock" là sai:** mọi `UPDATE` đều tự lấy **row write-lock** trên tuple nó sửa — không phải đặc quyền của `FOR UPDATE`. Naive để ~86 request cùng vượt qua check `NULL` rồi cùng `UPDATE` một row → **86 lần ghi serialize** trên cùng row lock + mỗi lần tạo version mới (MVCC bloat) + 86 commit/fsync. FOR UPDATE giành lock SỚM ở `SELECT` nên 99/100 thấy "đã có chủ" → **bỏ cuộc trước khi ghi**, chỉ 1 lần `UPDATE`. → Naive dời lock xuống `UPDATE` và **nhân lên 86 lần**; ít ghi hơn ⇒ FOR UPDATE nhanh hơn dù vẫn xếp hàng.
+>
+> *Số đo thật trên localhost, 100 request đồng thời (order-of-magnitude). Điều luôn đúng bất kể scale: naive oversubscribed + làm việc thừa, FOR UPDATE đúng, Redis né lock nên nhanh nhất. Lưu ý: ở contention cao hơn nhiều (hàng nghìn request + network) thì đuôi của FOR UPDATE mới phình to.*
 
 ### Điểm then chốt
 
@@ -267,6 +275,18 @@ Hero Tank khác Hero AP, Building Farm khác Building Barracks — config nested
 **So sánh:** PostgreSQL thuần (`pixiland_norm`) · PostgreSQL JSONB (`pixiland_jsonb`) · MongoDB (`pixiland`)
 
 > Demo 2 seed **2 database Postgres riêng** — cùng schema table (`users`, `wallets`, `heroes`) nhưng norm vs JSONB embed. Sau benchmark read/migration, chạy `npm run db:size` để so disk live (embed trả giá storage).
+
+**Chạy live — tách từng phần** (seed một lần, rồi chạy từng layer cho dễ theo dõi):
+
+```bash
+npm run demo:2:seed     # đầu buổi: nạp 100K hero vào norm/jsonb/mongo (~10s)
+npm run demo:2:layer1   # Layer 1 — read patterns (xuôi / ngược / index)
+npm run demo:2:layer2   # Layer 2 — schema evolution (lock dưới tải)
+npm run demo:2:lock     # bằng chứng pg_locks (ALTER rewrite chặn reader)
+npm run db:size         # so dung lượng norm vs jsonb vs mongo
+# demo:2 (không hậu tố) = chạy cả chuỗi để rehearsal
+# SQL chạy tay trên DataGrip: demos/02-hero-config/queries.sql
+```
 
 ### So sánh 3 approach
 
@@ -327,14 +347,41 @@ Kỳ vọng định tính (100K hero): `pixiland_jsonb` **lớn hơn** `pixiland
 
 ### Benchmark — Layer 2: Schema evolution (thêm field `trait`)
 
-Tuần mới thêm passive trait cho hero. So sánh migration trên data có sẵn:
+Tuần mới thêm passive trait cho hero. **Đừng đo "backfill nhanh hay chậm"** — đo sai thì SQL trông *thắng* (backfill `UPDATE` của PG nhanh hơn Mongo). Hai câu hỏi đúng là: (A) migration có **bắt buộc** không, và (B) migration có **block traffic đang chạy** không.
 
-| Migration step | Postgres thuần | Postgres JSONB | MongoDB |
+**Part A — đọc field mới trên data CŨ (chưa migrate):**
+
+| | Postgres thuần | Postgres JSONB | MongoDB |
 |---|---|---|---|
-| ALTER / DDL | ~1–2ms | ~0 (không cần) | ~0 (không cần) |
-| Backfill 100K rows | ~250ms | ~600ms | ~700ms |
+| `SELECT trait` trên row cũ | ❌ `ERROR: column "trait" does not exist` | ✓ `null` | ✓ `null` |
+| Migration có **bắt buộc**? | **Có** — phải ALTER trước khi dùng được | Không — đọc lazy, default ở app | Không — đọc lazy, default ở app |
 
-> **Ghi chú độ chính xác:** PostgreSQL 11+ `ADD COLUMN` nullable gần như metadata-only — chi phí migration thật nằm ở **backfill** + **index mới** + **deploy migration file**. JSONB/Mongo **không cần DDL**; nếu chỉ ghi field mới cho hero mới → **0 migration cost**. Backfill toàn bộ row vẫn tốn, nhưng không block schema deploy. Đây là **developer velocity scale**, không phải throughput scale.
+→ Normalized: field phải tồn tại như **cột thật** thì mới đọc được → buộc DDL. JSONB/Mongo: field vắng đọc ra `null` → app `trait ?? 'Steadfast'` chạy luôn, **0 migration**.
+
+**Part B — chạy migration trong khi OLTP đang đọc `heroes` (6 luồng song song):**
+
+| Migration (under load) | Migrate time | OLTP max | OLTP avg | Block? |
+|---|---|---|---|---|
+| PG norm — `ADD COL NOT NULL DEFAULT` (rewrite) | ~140ms | **~130ms** | ~4ms | **CÓ** — 6/6 reader kẹt ≈ trọn lock |
+| PG JSONB — backfill `UPDATE` | ~0.9s | ~40ms | ~0.1ms | Không (reader chạy ~33K query) |
+| Mongo — `updateMany` | ~0.6s | ~13ms | ~0.4ms | Không |
+
+> **Cú twist:** PG-norm rewrite *nhanh hơn* về tổng thời gian (~140ms vs ~0.9s) **nhưng giữ `ACCESS EXCLUSIVE`** suốt lúc rewrite → mọi reader **đóng băng** đúng bằng thời gian đó (`OLTP max ≈ migrate time`). JSONB backfill *lâu hơn* nhưng chỉ row-lock MVCC → reader **không bị chặn**, vẫn chạy hàng chục nghìn query. Nhanh trên giấy ≠ an toàn khi đang live.
+
+> **Bằng chứng lock (live):** `npm run demo:2:lock` — script chạy ALTER rewrite trong khi 6 reader đọc song song, rồi in snapshot `pg_locks` bắt được: 1 dòng `AccessExclusiveLock granted=t` (ALTER) + 6 dòng `AccessShareLock granted=f (waiting)` (reader xếp hàng). Đây là cái queue có thật, không phải mô phỏng.
+>
+> ```sql
+> -- query quan sát (psql) — chạy trong lúc ALTER đang giữ lock:
+> SELECT l.pid, a.state, l.mode, l.granted
+> FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid
+> WHERE l.relation = 'lock_demo'::regclass
+> ORDER BY l.granted DESC, l.pid;
+> ```
+
+> **Ghi chú độ chính xác (kẻo bị bắt bẻ):**
+> - PG 11+ `ADD COLUMN` nullable / `DEFAULT` hằng số = **metadata-only** (~vài ms, không rewrite). Demo cố tình dùng `DEFAULT` tính per-row (volatile) để minh hoạ **migration rewrite thật** — cùng họ với đổi type, `SET NOT NULL`, `ADD CONSTRAINT ... CHECK` (validate scan). Không phải mọi ALTER đều khoá.
+> - Điểm cốt lõi: với normalized, field là **cột** → một số schema change buộc rewrite/scan giữ lock. Với JSONB/Mongo field nằm trong **blob linh hoạt** → thêm field **không bao giờ rewrite bảng** → không đụng traffic đang chạy.
+> - Đây là **developer velocity + safe-migration scale**, không phải throughput scale.
 
 ### Tổng hợp trade-off
 
@@ -480,20 +527,20 @@ OLAP  → nhiều rows, ít lần, read-heavy, aggregate nặng → columnar sto
 
 Hai pattern này **ngược nhau** — không thể tối ưu cùng một lúc.
 
-### Tại sao DuckDB cho demo này
+### Tại sao ClickHouse cho demo này
 
-ClickHouse là production choice tốt hơn ở scale lớn, nhưng setup nặng. DuckDB: chạy in-process, không cần server, đọc thẳng từ Parquet, SQL syntax gần giống PostgreSQL. Đủ để thể hiện tư duy OLAP columnar cho mục đích demo.
+ClickHouse là **production choice** cho OLAP: columnar server riêng (MergeTree + `LowCardinality`), scale-out được, và DataGrip nối native để xem data tận tay. Vì là engine riêng (process/máy riêng) nên minh hoạ rõ điểm "tách analytics khỏi OLTP". (DuckDB là lựa chọn **in-process** nhẹ hơn — không cần server, đọc thẳng Parquet — hợp khi chỉ cần embed analytics; cùng tư duy columnar.)
 
 ### Benchmark — 5 triệu battle log rows (demo scale; production thực tế 50–100 triệu rows)
 
-| Query | PostgreSQL | DuckDB |
+| Query | PostgreSQL | ClickHouse |
 |---|---|---|
-| Hero win rate (90 ngày) | ~190ms | ~21ms |
-| DAU theo ngày | ~2.4s | ~100ms |
-| Battles theo region+giờ | ~293ms | ~28ms |
+| Hero win rate (90 ngày) | ~208ms | ~16ms (13x) |
+| DAU theo ngày | ~2.3s | ~49ms (46x) |
+| Battles theo region+giờ | ~238ms | ~24ms (10x) |
 | **Chạy chung OLTP?** | **tranh CPU/IO với game** | **engine riêng — không đụng** |
 
-> Số đo thật (localhost, 5M rows). DuckDB nhanh hơn **~10–30x** cho aggregate scan — `count(distinct)` ở DAU chênh nhất (~30x). Nhưng điểm quan trọng nhất không phải tốc độ: khi analytics chạy engine riêng, query nặng không tranh CPU/IO với transaction người đang chơi.
+> Số đo thật (localhost, 5M rows). ClickHouse nhanh hơn **~10–46x** cho aggregate scan — `count(distinct)` ở DAU chênh nhất (~46x, columnar quét 1 cột thay vì cả hàng). Nhưng điểm quan trọng nhất không phải tốc độ: khi analytics chạy engine riêng, query nặng không tranh CPU/IO với transaction người đang chơi (contention) — xem giải thích contention ở phần dưới.
 
 ### "Không ảnh hưởng OLTP" — với một điều kiện
 
@@ -518,9 +565,85 @@ Vấn đề không phải query có chạy được không.
 Vấn đề là có nên để analytics chạy trên OLTP không.
 
 PostgreSQL       → OLTP, transaction path, source of truth
-DuckDB/ClickHouse → OLAP, analytics, dashboard — không đụng production
+ClickHouse/DuckDB → OLAP, analytics, dashboard — không đụng production
 
 Tách hai layer này ra là quyết định kiến trúc, không phải tối ưu performance.
+```
+
+---
+
+## Demo 5 — Match history / activity feed (wide-column) (12–15 phút)
+
+### Bài toán
+
+Mỗi trận PvP sinh một event, **append-only** (gần như không sửa). Hai nhu cầu: (1) ghi **cực nhiều** event liên tục, (2) đọc nhanh "**50 trận gần nhất của player X**" cho màn history. Đây đúng họ workload Discord mô tả ở Hook — và Discord dừng lại ở **ScyllaDB** (wide-column).
+
+> Demo này dùng **ScyllaDB** — CQL/Cassandra-compatible nhưng viết bằng C++ (shard-per-core, không JVM). Cùng `cassandra-driver`, cùng mô hình dữ liệu Cassandra; gọn và nhanh hơn để demo.
+
+**Chạy live — từng phần** (Scylla khởi động chậm, `db:up` 1 lần đầu buổi):
+
+```bash
+npm run demo:5:seed      # ghi 200K event vào PG + Scylla (đo write throughput)
+npm run demo:5:read      # "last 50 của player X" — partition read
+npm run demo:5:contract  # query-first contract: ad-hoc Scylla từ chối
+npm run demo:5           # cả ba
+# CQL/SQL chạy tay (DataGrip): demos/05-match-history/queries.cql
+```
+
+### So sánh 2 approach
+
+**PostgreSQL** — `matches(player_id, match_time, …)` + index `(player_id, match_time DESC)`.
+- ✓ Query bất kỳ: JOIN, ad-hoc WHERE, thêm index cho pattern mới — rất linh hoạt
+- ✓ Đọc "last 50" nhanh nhờ index
+- ✗ Write throughput đụng **trần 1 node** (B-tree + WAL/fsync); scale ngang khó
+
+**ScyllaDB (wide-column)** — `PRIMARY KEY ((player_id), match_time, match_id)`, clustering `match_time DESC`.
+- ✓ Write throughput cao (LSM append, shard-per-core), **scale-out tuyến tính** nhiều node + HA multi-DC
+- ✓ Partition read "last 50" = seek 1 partition, đã sort sẵn — phẳng bất kể bảng to
+- ✗ **Query-first contract:** không JOIN, không ad-hoc; query theo cột không phải partition key → **từ chối** (cần `ALLOW FILTERING` = full scan, hoặc tạo bảng denormalized mới, ghi event nhiều lần)
+
+### Benchmark — 200K event (số đo thật, 1 node localhost)
+
+| | PostgreSQL | ScyllaDB |
+|---|---|---|
+| Write 200K event (concurrent, append) | ~3.9s · **~51k/s** | ~1.7s · **~120k/s** |
+| Partition read "last 50 của player X" | ~0.2ms | ~0.3ms |
+| Ad-hoc theo `opponent` (không phải PK) | seq scan ~16ms → **thêm index ~1ms** | **TỪ CHỐI** · ALLOW FILTERING scan ~9ms · hoặc tạo bảng mới |
+
+> **Đo, đừng đoán — KY VONG: "Scylla nhanh hơn Postgres mọi mặt".** Số thật:
+> - **Write: Scylla thắng thật (~2.3x)** trên 1 node — shard-per-core, append-only LSM. Đây là win trung thực.
+> - **Read partition: NGANG nhau** — đừng oversell "NoSQL đọc nhanh hơn"; PG có index đọc top-N ngang Scylla.
+> - **Ad-hoc/JOIN: Scylla THUA** — nó *từ chối* query ngoài partition key. PG chỉ cần thêm 1 index.
+>
+> **Cảnh báo trung thực (kẻo bị bắt bẻ):** demo chạy **1 node + developer-mode** → số minh hoạ. Thế mạnh THẬT của Scylla — **scale-out tuyến tính nhiều node + HA multi-DC** — *không thể demo trên 1 container*; đó mới là lý do Discord chọn nó cho hàng nghìn tỷ message. 1 node chỉ cho thấy *write path nhanh + contract query-first*.
+
+### Pattern đúng — query-first, denormalize có chủ đích
+
+```
+Wide-column: thiết kế BẢNG THEO QUERY, không theo entity.
+  matches_by_player   → đọc theo player (history)
+  matches_by_opponent → đọc theo đối thủ (nếu cần) — GHI EVENT 2 LẦN
+
+Không JOIN, không ad-hoc. Mỗi access pattern = một bảng.
+Đổi flexibility lấy: write throughput + scale ngang tuyến tính + HA.
+```
+
+### Scale bottleneck (DB level)
+
+- **PostgreSQL:** write throughput trần 1 node; phải partition table + (cuối cùng) sharding thủ công khi event vượt sức 1 máy
+- **ScyllaDB:** thêm node → throughput + dung lượng tăng gần tuyến tính (consistent hashing); bottleneck chuyển sang **thiết kế partition key** (hot partition nếu key lệch) và **chi phí denormalize** (mỗi query pattern = 1 bảng + 1 lần ghi)
+
+### Takeaway
+
+```
+Wide-column không "nhanh hơn SQL" — nó là HỢP ĐỒNG KHÁC.
+Đổi: JOIN + ad-hoc query  →  lấy: write scale-out tuyến tính + partition read phẳng.
+
+ScyllaDB/Cassandra → write-heavy, append-only, đọc theo partition key đã biết trước,
+                     cần scale ngang nhiều node (Discord: nghìn tỷ message).
+PostgreSQL         → cần query linh hoạt (JOIN, ad-hoc, index tuỳ ý), scale 1 node là đủ.
+
+Câu hỏi vẫn là access pattern: bạn có biết TRƯỚC mình sẽ query thế nào không?
 ```
 
 ---
@@ -640,7 +763,7 @@ Analytics              → aggregate nặng, scan lớn, offline ok
 **Câu 2: Consistency level cần là gì?**
 - Sai là mất tiền, mất NFT → ACID, PostgreSQL
 - Sai là hiển thị rank lệch vài giây → eventual ok, Redis
-- Sai là analytics report hơi cũ → batch sync ok, DuckDB
+- Sai là analytics report hơi cũ → batch sync ok, ClickHouse
 
 **Câu 3: Access pattern là gì?**
 - Đọc theo ID, JOIN nhiều bảng → relational SQL
@@ -661,7 +784,7 @@ Analytics              → aggregate nặng, scan lớn, offline ok
 | Cần ACID / source of truth? | **PostgreSQL** | user, wallet, NFT, battle result |
 | Coordination ngắn hạn / atomic? | **Redis** | house lock, cooldown, rate limit |
 | Realtime rank / read model? | **Redis Sorted Set** | PvP leaderboard display |
-| Aggregate scan / analytics? | **DuckDB / ClickHouse** | dashboard, win rate, DAU |
+| Aggregate scan / analytics? | **ClickHouse / DuckDB** | dashboard, win rate, DAU |
 | Schema nested + cần JOIN? | **Postgres JSONB** | hero config, building config |
 | Document là access pattern chính? | **MongoDB** | khi ít JOIN, đọc nguyên object |
 
@@ -672,10 +795,10 @@ PostgreSQL        → user, wallet, NFT, battle result     (transactional truth)
 PostgreSQL JSONB  → hero config, building config          (flexible truth)
 Redis             → house lock, resource counter idle     (coordination)
 Redis Sorted Set  → PvP leaderboard display               (read model)
-DuckDB/ClickHouse → dashboard, analytics, win rate        (analytics layer)
+ClickHouse/DuckDB → dashboard, analytics, win rate        (analytics layer)
 ```
 
-**5 vai trò · 3 engine** (Postgres · Redis · DuckDB/ClickHouse) — Postgres đóng 2 vai (truth + JSONB config), Redis đóng 2 vai (lock + Sorted Set). Một engine gánh nhiều vai; chưa cần đến vai nào thì chưa thêm engine cho vai đó.
+**5 vai trò · 3 engine** (Postgres · Redis · ClickHouse) — Postgres đóng 2 vai (truth + JSONB config), Redis đóng 2 vai (lock + Sorted Set). Một engine gánh nhiều vai; chưa cần đến vai nào thì chưa thêm engine cho vai đó.
 
 > MongoDB **không** nằm trong stack — JSONB đã đủ cho config. Chỉ thêm Mongo khi document trở thành access pattern chính. (Đúng tinh thần Pitfall 6: thêm engine chỉ khi đo được nhu cầu thật.)
 

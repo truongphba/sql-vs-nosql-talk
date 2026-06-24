@@ -1,8 +1,8 @@
 # Presentation — Pixiland DB Talk
 
-Slide deck (reveal.js, no-build) cho buổi *SQL vs NoSQL*. **Đầy đủ toàn buổi — 45 slide**: Hook → Pixiland → DB landscape → Demo 1–4 → Pitfalls → Decision Framework → Q&A → Closing.
+Slide deck (reveal.js, no-build) cho buổi *SQL vs NoSQL*. **Đầy đủ toàn buổi — 46 slide**: Hook → Pixiland → DB landscape → Demo 1–5 → Pitfalls → Decision Framework → Q&A → Closing.
 
-> ⚠ Các bảng **benchmark là số tạm** (đánh dấu "SO TAM" ở footer mỗi bảng) — refresh sau khi chạy demo thật.
+> Slide benchmark chỉ ghi **KY VONG** (kỳ vọng): banner myth + bảng số dự đoán, **không** có số thật/verdict. Số thật chạy **live ở terminal** (`npm run demo:N`) rồi đối chiếu với kỳ vọng — confirm/bust nói bằng lời.
 
 ## Mở & trình chiếu
 
