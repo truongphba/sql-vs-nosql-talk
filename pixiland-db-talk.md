@@ -148,6 +148,28 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 
 > Buổi này không cover hết — Wide-column, Graph, Search… sẽ được nhắc khi liên quan.
 
+### Chuẩn bị môi trường demo (Docker)
+
+**Một lần `npm run db:up` cho cả buổi** — không cần `docker compose down/up` giữa từng demo. Mỗi script tự reset state đầu run (TRUNCATE / DROP TABLE / `del` key / drop collection).
+
+| Demo | Postgres | Redis | MongoDB |
+|---|---|---|---|
+| 1 House | `pixiland` · bảng `houses` | key `house:1` | — |
+| 2 Hero config | `pixiland_norm` + `pixiland_jsonb` (2 DB riêng) | — | DB `pixiland` · `users` / `wallets` / `heroes` |
+| 3 Leaderboard | `pixiland` · bảng `leaderboard` | key `lb` | — |
+| 4 Analytics | `pixiland` · `battle_logs` | — | — (DuckDB in-process) |
+
+**Không xung đột:** demo 1 và 3 dùng chung DB `pixiland` nhưng bảng/key khác nhau; demo 2 tách 2 DB Postgres để so dung lượng embed vs normalized.
+
+**Khi nào `npm run db:down -v`:** rehearsal sạch, lần đầu tạo `pixiland_norm` / `pixiland_jsonb` (init script chỉ chạy khi volume mới), hoặc sau khi đổi `docker/postgres-init/`.
+
+```bash
+npm run db:up      # đầu buổi
+npm run demo:1..4  # chạy liên tiếp, không cần restart Docker
+npm run db:size    # sau Demo 2 — xem dung lượng DB (optional live)
+npm run db:down    # cuối buổi / dọn sạch
+```
+
 ---
 
 ## Demo 1 — House contention / Race condition (12–15 phút)
@@ -157,6 +179,17 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 Một house chỉ cho 1 user khai thác tài nguyên tại 1 thời điểm. Khi event mining pool bắt đầu, hàng trăm request cùng hit một house đang trống trong vài millisecond.
 
 **Scenario:** 100 user → 1 house trống → cùng 1 lúc → chỉ 1 người được thắng.
+
+**Chạy live — từng case** (để khán giả thấy race trước khi so latency):
+
+```bash
+npm run demo:1:naive        # FAIL — nhiều winners, race lộ rõ
+npm run demo:1:for-update   # đúng 1 winner, chậm hơn
+npm run demo:1:redis        # đúng 1 winner, nhanh nhất
+npm run demo:1:all          # rehearsal: cả 3 + bảng tổng
+```
+
+Mỗi lệnh reset state (`TRUNCATE` / `DEL`) — chạy lại nhiều lần vẫn ổn.
 
 ### So sánh 3 approach
 
@@ -174,11 +207,13 @@ Atomic ở tầng Redis — set key nếu chưa tồn tại, expire sau 30 phút
 
 ### Benchmark — 100 concurrent requests
 
-| Approach | Winners | Latency | Correctness |
+| Approach | Winners | Latency (avg · max) | Correctness |
 |---|---|---|---|
-| Naive PostgreSQL | ~80 ❌ | ~100ms | FAIL — oversubscribed |
-| PostgreSQL FOR UPDATE | 1 ✓ | ~22ms | Correct |
-| Redis SET NX | 1 ✓ | ~3ms | Correct |
+| Naive PostgreSQL | ~80 ❌ | ~100ms · thấp | FAIL — oversubscribed |
+| PostgreSQL FOR UPDATE | 1 ✓ | ~avg ms · **max >> avg** | Correct — row lock queue |
+| Redis SET NX | 1 ✓ | ~avg ms · max ≈ min | Correct — không queue lock |
+
+> Script in thêm **min / avg / p95 / max** mỗi case. Case 2 trade-off lộ ở **max >> avg** (request cuối xếp hàng sau `FOR UPDATE`). Case 3 **spread nhỏ** — không hot row lock trên Postgres.
 
 > Redis nhanh hơn FOR UPDATE ~7x; naive thì vừa chậm vừa sai. Nhưng đây chưa phải câu chuyện đầy đủ.
 >
@@ -227,56 +262,102 @@ Không để Postgres làm coordination layer dưới spike.
 
 ### Bài toán
 
-Hero Tank khác Hero AP, Building Farm khác Building Barracks — config nested, optional fields, evolve nhanh. Game iterate liên tục, tuần nào cũng thêm skill mới, hero type mới.
+Hero Tank khác Hero AP, Building Farm khác Building Barracks — config nested, optional fields, evolve nhanh. Mỗi hero còn cần đọc kèm thông tin user sở hữu. Game iterate liên tục, tuần nào cũng thêm skill mới, hero type mới.
 
-**So sánh:** PostgreSQL thuần · PostgreSQL JSONB · MongoDB
+**So sánh:** PostgreSQL thuần (`pixiland_norm`) · PostgreSQL JSONB (`pixiland_jsonb`) · MongoDB (`pixiland`)
+
+> Demo 2 seed **2 database Postgres riêng** — cùng schema table (`users`, `wallets`, `heroes`) nhưng norm vs JSONB embed. Sau benchmark read/migration, chạy `npm run db:size` để so disk live (embed trả giá storage).
 
 ### So sánh 3 approach
 
 **PostgreSQL thuần — normalized**
 
-Tạo bảng riêng cho từng loại entity: `heroes`, `hero_skills`, `hero_effects`... Query một hero đầy đủ phải JOIN 3–4 bảng.
+Tạo bảng riêng cho từng loại entity: `users`, `heroes`, `hero_skills`, `hero_effects`... Query một hero kèm owner phải JOIN qua `users`.
 
 - ✓ Constraint rõ ràng, FK đảm bảo integrity
 - ✗ Thêm field mới → ALTER TABLE hoặc thêm bảng → schema migration chậm, team velocity giảm
 
 **PostgreSQL JSONB**
 
-Giữ một bảng với cột `config JSONB` chứa nested data. Phần còn lại vẫn SQL bình thường.
+Giữ một bảng với cột `config JSONB` chứa nested data, gồm cả owner snapshot. Phần còn lại vẫn SQL bình thường.
 
 - ✓ Schema linh hoạt trong khi vẫn giữ ACID, JOIN với SQL tables bình thường
 - ✓ Một DB duy nhất — một connection string, một backup strategy
 - ✓ Index nested field được — **B-tree expression** cho field cụ thể (`CREATE INDEX ON heroes ((config->>'rarity'))`), hoặc **GIN** cho truy vấn containment (`config @> '{"rarity":"SSR"}'`)
+- ✗ Owner snapshot duplicate — user đổi tên/level thì app phải sync hoặc chấp nhận snapshot cũ
 - ✗ Không có constraint trên nested field — validate phải ở application layer
 
 **MongoDB**
 
-Document tự nhiên, không cần khai báo schema. Thêm field mới: chỉ cần ghi document mới với field đó.
+Document tự nhiên, không cần khai báo schema. Hero document có thể embed owner snapshot. Thêm field mới: chỉ cần ghi document mới với field đó.
 
 - ✓ Developer experience tốt nhất khi schema thay đổi liên tục
-- ✓ Đọc nguyên object một query, không cần JOIN
+- ✓ Đọc hero kèm owner một query, không cần JOIN
+- ✓ Đọc ngược owner → heroes bằng index trên `owner.id`
 - ✗ Không có foreign key — `owner_id` trỏ vào đâu không ai kiểm tra
-- ✗ `$lookup` chậm hơn SQL JOIN và cú pháp rườm rà hơn
+- ✗ Owner đổi tên/level → phải update nhiều document hoặc chấp nhận denormalized snapshot
 
-### Benchmark — 10K hero records
+### Benchmark — Layer 1: Read patterns (100K hero · 5K user · whale skew)
 
 | Operation | Postgres thuần | Postgres JSONB | MongoDB |
 |---|---|---|---|
-| Insert 10K | ~0.40s | ~0.11s | ~0.07s |
-| Query nested field | ~2.4ms (JOIN + index) | ~2.1ms (GIN) | ~2.8ms |
+| Bulk insert 100K | ~4s (4 bảng) | ~3.5s | ~1.2s |
+| Hero full view (đọc xuôi) | ~0.9ms (JOIN 4 bảng, live) | ~0.5ms (1 JSONB) | ~0.5ms (1 document) |
+| Owner → heroes **multi (idx)** | ~1ms (users ⋈ wallets ⋈ heroes) | ~1ms (3 bảng JOIN) | ~2ms (`$lookup` ×2) |
+| Owner → heroes **multi NO idx** | ~4ms | ~9ms | ~27ms (`$lookup` scan) |
+
+> **Bulk insert:** PG dùng `unnest` (1 query/bảng), Mongo `insertMany` — so sánh công bằng, không row-by-row. PG normalized vẫn chậm hơn vì ghi **4 bảng** (heroes + 90K skill rows), không phải vì API insert kém.
+>
+> **Hero full view:** PG **JOIN 4 bảng** + `json_agg` (live). JSONB/Mongo **1 read** (snapshot).
+>
+> **Đọc ngược:** từ user lấy heroes + wallet — PG/JSONB **multi JOIN**; Mongo **`$lookup` wallets + heroes**. Có index PG thắng; NO idx Mongo `$lookup` scan ~27ms. PG normalized thêm `hero_skills` = bảng thứ 4 khi cần skill.
+
+### Kiểm tra dung lượng (live — sau seed)
+
+Embed owner/wallet snapshot → trả bằng disk. **Không in trong script** — presenter chạy tay:
+
+```bash
+npm run db:size           # tổng từng PG database + Mongo collections
+npm run db:size:pg:tables # chi tiết bảng trong norm vs jsonb
+```
+
+Kỳ vọng định tính (100K hero): `pixiland_jsonb` **lớn hơn** `pixiland_norm` (~1.5–1.7×) vì duplicate snapshot trong `config`; `users`/`wallets` gần bằng nhau. Mongo embed tương tự nhưng BSON gọn hơn JSONB text.
+
+> **Ghi chú:** PG dùng `pg_database_size`; Mongo dùng `collStats` (logical + disk). Nhấn **ratio norm vs jsonb**, không so byte tuyệt đối PG vs Mongo.
+
+### Benchmark — Layer 2: Schema evolution (thêm field `trait`)
+
+Tuần mới thêm passive trait cho hero. So sánh migration trên data có sẵn:
+
+| Migration step | Postgres thuần | Postgres JSONB | MongoDB |
+|---|---|---|---|
+| ALTER / DDL | ~1–2ms | ~0 (không cần) | ~0 (không cần) |
+| Backfill 100K rows | ~250ms | ~600ms | ~700ms |
+
+> **Ghi chú độ chính xác:** PostgreSQL 11+ `ADD COLUMN` nullable gần như metadata-only — chi phí migration thật nằm ở **backfill** + **index mới** + **deploy migration file**. JSONB/Mongo **không cần DDL**; nếu chỉ ghi field mới cho hero mới → **0 migration cost**. Backfill toàn bộ row vẫn tốn, nhưng không block schema deploy. Đây là **developer velocity scale**, không phải throughput scale.
+
+### Tổng hợp trade-off
+
+| | Đọc xuôi (embed) | Cross-table / JOIN | Đọc ngược | Schema evolve |
+|---|---|---|---|---|
+| PG thuần | Chậm hơn (JOIN) | **Thắng** | **Thắng** (btree FK) | ALTER + backfill |
+| PG JSONB | Nhanh | **Thắng** (hybrid) | Cần index | Không DDL |
+| MongoDB | Nhanh | Chậm (`$lookup`) | Cần index | Không DDL |
+
 | Thêm field mới | ALTER TABLE ⚠ | Không cần | Không cần |
-| Đọc nguyên 1 hero | 3 JOINs | 1 query | 1 query |
 | Foreign key constraint | ✓ DB level | ✓ SQL tables | ✗ Application only |
 | Operational overhead | 1 DB | 1 DB | DB riêng, maintain thêm |
 
-> Performance không chênh nhau nhiều ở scale này. Điểm khác biệt thật sự là **schema evolution và team velocity**.
+> Không có approach nào thắng mọi chiều. **Mongo/JSONB thắng đọc xuôi + schema evolve; SQL thắng cross-table JOIN + đọc ngược quan hệ.** JSONB là sweet spot khi cần cả hai.
 
 ### Scale bottleneck
 
-Bottleneck của demo này không phải query speed — mà là:
+Bottleneck của demo này **không chỉ** query speed — mà là access pattern + schema evolution:
 
-- **Schema evolution:** Mỗi lần thêm feature là một migration, risk downtime với Postgres thuần
+- **Access pattern:** embed thắng đọc xuôi; quan hệ chéo bảng + đọc ngược thắng SQL
+- **Schema evolution:** PG thuần = migration file + ALTER + backfill; JSONB/Mongo = ship code trước, backfill sau (hoặc không backfill)
 - **Data integrity:** JSONB và MongoDB đẩy trách nhiệm validate lên application layer
+- **Duplicate snapshot:** embed owner giúp đọc xuôi; đọc ngược vẫn cần index. User đổi tên → fan-out update
 - **Operational complexity:** MongoDB là một DB riêng — thêm một hệ thống cần maintain
 
 ### Khi nào chọn gì
@@ -288,10 +369,11 @@ Bottleneck của demo này không phải query speed — mà là:
 ### Takeaway
 
 ```
-Flexible schema không tự động đồng nghĩa phải dùng MongoDB.
-PostgreSQL JSONB là middle ground mạnh — flexibility + ACID + một DB duy nhất.
-Chọn MongoDB khi document model là access pattern chính,
-không phải chỉ vì schema hay thay đổi.
+Không có storage nào thắng mọi access pattern.
+Mongo/JSONB thắng đọc xuôi + schema evolve (không DDL).
+SQL thắng cross-table JOIN + đọc ngược quan hệ.
+PostgreSQL JSONB là sweet spot — flexible config + vẫn JOIN wallet/user.
+Chọn MongoDB khi document là access pattern chính, không phải chỉ vì schema hay đổi.
 ```
 
 ---

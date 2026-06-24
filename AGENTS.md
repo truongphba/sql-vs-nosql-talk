@@ -27,10 +27,15 @@ Dùng Node 20 trở lên.
 ```bash
 npm install          # cài dependency
 npm run db:up        # chạy Postgres, Redis, MongoDB và chờ healthy
-npm run demo:1       # house contention / race condition
+npm run demo:1       # house contention (in usage; live: demo:1:naive → for-update → redis)
+npm run demo:1:naive
+npm run demo:1:for-update
+npm run demo:1:redis
+npm run demo:1:all
 npm run demo:2       # hero config: normalized SQL vs JSONB vs MongoDB
 npm run demo:3       # leaderboard: Postgres vs Redis Sorted Set
 npm run demo:4       # analytics: Postgres vs DuckDB
+npm run db:size      # xem dung lượng PG (pixiland*) + Mongo collections
 npm run db:logs      # xem log database
 npm run db:down      # dừng service và xoá volume
 ```

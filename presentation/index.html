@@ -304,7 +304,7 @@
         <div class="phase-num">D2</div>
         <div class="eyebrow">DEMO 2 · FLEXIBLE SCHEMA</div>
         <h1>Hero / building config</h1>
-        <p class="big" style="max-width:28ch">Config nested, optional fields, <strong>evolve mỗi tuần</strong></p>
+        <p class="big" style="max-width:30ch">Config nested + owner info, optional fields, <strong>evolve mỗi tuần</strong></p>
       </div>
     </section>
 
@@ -319,7 +319,7 @@
             <ul class="pc">
               <li class="ok">Constraint + FK chặt</li>
               <li class="no">Thêm field → ALTER TABLE, migration chậm</li>
-              <li class="no">Đọc 1 hero phải JOIN 3–4 bảng</li>
+              <li class="no">Hero → owner phải JOIN bảng users</li>
             </ul>
           </div>
           <div class="acard" style="--c:var(--pg)">
@@ -328,7 +328,7 @@
             <ul class="pc">
               <li class="ok">Flexible + vẫn ACID, 1 DB duy nhất</li>
               <li class="ok">Index được: B-tree expr + GIN</li>
-              <li class="no">Validate nested ở app layer</li>
+              <li class="no">Owner snapshot duplicate, app tự validate</li>
             </ul>
           </div>
           <div class="acard" style="--c:var(--mongo)">
@@ -336,7 +336,8 @@
             <div class="sub">document tự nhiên</div>
             <ul class="pc">
               <li class="ok">DX tốt nhất khi schema đổi liên tục</li>
-              <li class="no">Không FK · $lookup chậm hơn JOIN</li>
+              <li class="ok">Đọc hero + owner rất tự nhiên</li>
+              <li class="no">Owner đổi tên → phải sync snapshot</li>
               <li class="no">Thêm 1 DB phải maintain</li>
             </ul>
           </div>
@@ -346,22 +347,37 @@
 
     <section>
       <div class="slide-body">
-        <div class="eyebrow">BENCHMARK · GUESS vs REAL</div>
-        <h3 style="margin-bottom:0.35em">Khác biệt thật không nằm ở tốc độ</h3>
-        <div class="guess"><b>KY VONG</b><span class="myth">schema flexible thì phải dùng MongoDB · JSONB là compromise chậm</span></div>
+        <div class="eyebrow">BENCHMARK · LAYER 1 · READ</div>
+        <h3 style="margin-bottom:0.35em">Access pattern quyết định ai thắng</h3>
+        <div class="guess"><b>KY VONG</b><span class="myth">Mongo nhanh mọi hướng · SQL JOIN luôn chậm</span></div>
         <table class="ctable dense">
           <thead><tr><th>OPERATION</th><th>PG PLAIN</th><th>PG JSONB</th><th>MONGO</th></tr></thead>
           <tbody class="fragment">
-            <tr><td class="co">Insert 10K</td><td class="reason">~0.40s</td><td class="reason">~0.11s</td><td class="reason">~0.07s</td></tr>
-            <tr><td class="co">Query nested field</td><td class="reason">~2.4ms (JOIN)</td><td class="reason">~2.1ms (GIN)</td><td class="reason">~2.8ms</td></tr>
-            <tr><td class="co">Thêm field mới</td><td class="reason">ALTER TABLE</td><td class="reason">không cần</td><td class="reason">không cần</td></tr>
-            <tr><td class="co">Đọc nguyên 1 hero</td><td class="reason">3 JOINs</td><td class="reason">1 query</td><td class="reason">1 query</td></tr>
-            <tr><td class="co">Foreign key</td><td class="reason" style="color:var(--mongo)">✓ DB level</td><td class="reason" style="color:var(--mongo)">✓ SQL tables</td><td class="reason" style="color:var(--redis)">✗ app only</td></tr>
-            <tr><td class="co">Operational</td><td class="reason">1 DB</td><td class="reason">1 DB</td><td class="reason">DB riêng</td></tr>
+            <tr><td class="co">Bulk insert 100K</td><td class="reason">~4s</td><td class="reason">~3.5s</td><td class="reason">~1.2s</td></tr>
+            <tr><td class="co">Hero full view (xuôi)</td><td class="reason" style="color:var(--redis)">~0.9ms · JOIN 4</td><td class="reason" style="color:var(--mongo)">~0.5ms</td><td class="reason" style="color:var(--mongo)">~0.5ms</td></tr>
+            <tr><td class="co">Owner→heroes multi (idx)</td><td class="reason" style="color:var(--mongo)">~1ms · 3 JOIN</td><td class="reason">~1ms · 3 JOIN</td><td class="reason">~2ms · $lookup×2</td></tr>
+            <tr class="hl"><td class="co">Owner→heroes multi NO idx</td><td class="reason">~4ms</td><td class="reason">~9ms</td><td class="reason" style="color:var(--redis)">~27ms</td></tr>
           </tbody>
         </table>
-        <div class="verdict-box bust fragment"><span class="tag">BUSTED</span>Cả ba ngang nhau ở scale này — <strong>JSONB đủ</strong>. Khác biệt thật: schema evolution + team velocity.</div>
-        <div class="note">DO THAT · 10K HERO · LOCALHOST</div>
+        <div class="verdict-box confirm fragment"><span class="tag">CONFIRMED</span><strong>Xuôi</strong> → 1 doc. <strong>Ngược</strong> → multi JOIN / <strong>$lookup×2</strong> — PG thắng có index; Mongo NO idx đắt nhất.</div>
+        <div class="note">DO THAT · 100K HERO · WHALE SKEW</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">BENCHMARK · LAYER 2 · MIGRATION</div>
+        <h3 style="margin-bottom:0.35em">Schema evolve — DX khác throughput</h3>
+        <div class="guess"><b>KY VONG</b><span class="myth">thêm column trên bảng lớn = downtime · Mongo free mọi thứ</span></div>
+        <table class="ctable dense">
+          <thead><tr><th>MIGRATION</th><th>PG PLAIN</th><th>PG JSONB</th><th>MONGO</th></tr></thead>
+          <tbody class="fragment">
+            <tr><td class="co">ALTER / DDL</td><td class="reason">~2ms</td><td class="reason" style="color:var(--mongo)">0</td><td class="reason" style="color:var(--mongo)">0</td></tr>
+            <tr><td class="co">Backfill 100K</td><td class="reason" style="color:var(--mongo)">~250ms</td><td class="reason">~600ms</td><td class="reason">~700ms</td></tr>
+          </tbody>
+        </table>
+        <div class="verdict-box bust fragment"><span class="tag">BUSTED</span>Backfill vẫn tốn — khác biệt DX: <strong>không DDL</strong>, ship code trước, hero mới có field ngay. PG11+ ADD COLUMN nullable ≈ metadata-only.</div>
+        <div class="note">DO THAT · ADD TRAIT FIELD · LOCALHOST</div>
       </div>
     </section>
 
