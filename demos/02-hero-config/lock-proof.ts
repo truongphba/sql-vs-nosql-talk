@@ -13,6 +13,7 @@
 import { ensurePgDatabase, makePoolForDb, pgDbs } from "../../src/db/pg";
 import { printTable, dim, title, ok, bad } from "../../src/lib/table";
 import { timed } from "../../src/lib/timer";
+import { withSpinner } from "../../src/lib/progress";
 
 const ROWS = 300_000; // đủ lớn để rewrite kéo dài vài trăm ms — watcher kịp bắt snapshot
 const READERS = 6;
@@ -37,9 +38,11 @@ async function main(): Promise<void> {
   try {
     title("DEMO 2 — Lock proof · ALTER rewrite giữ ACCESS EXCLUSIVE");
 
-    await setup.query(`DROP TABLE IF EXISTS lock_demo`);
-    await setup.query(`CREATE TABLE lock_demo (id int PRIMARY KEY, name text)`);
-    await setup.query(`INSERT INTO lock_demo SELECT g, 'n' || g FROM generate_series(1, $1) g`, [ROWS]);
+    await withSpinner(`Seed lock_demo · ${ROWS.toLocaleString()} rows`, async () => {
+      await setup.query(`DROP TABLE IF EXISTS lock_demo`);
+      await setup.query(`CREATE TABLE lock_demo (id int PRIMARY KEY, name text)`);
+      await setup.query(`INSERT INTO lock_demo SELECT g, 'n' || g FROM generate_series(1, $1) g`, [ROWS]);
+    });
     console.log(dim(`  Seeded lock_demo: ${ROWS.toLocaleString()} rows · ${READERS} reader song song\n`));
 
     let stop = false;

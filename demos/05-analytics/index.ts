@@ -38,11 +38,12 @@ async function seedPg(pool: Pool): Promise<number> {
   await pool.query(`CREATE TABLE battle_logs (
     hero_id int, player_id int, region text, win boolean, day int, hour int)`);
   const { ms } = await timed(async () => {
+    // floor (không phải ::int — Postgres ::int LÀM TRÒN → lệch phân bố ở rìa & region).
     await pool.query(
       `INSERT INTO battle_logs (hero_id, player_id, region, win, day, hour)
-       SELECT (random()*9999)::int+1, (random()*299999)::int+1,
-         (ARRAY['NA','EU','ASIA','SA'])[(random()*3)::int+1],
-         random() < 0.5, (random()*179)::int, (random()*23)::int
+       SELECT floor(random()*10000)::int+1, floor(random()*300000)::int+1,
+         (ARRAY['NA','EU','ASIA','SA'])[floor(random()*4)::int+1],
+         random() < 0.5, floor(random()*180)::int, floor(random()*24)::int
        FROM generate_series(1, ${N})`,
     );
     await pool.query(`ANALYZE battle_logs`);
@@ -60,13 +61,15 @@ async function seedClickhouse(ch: ClickHouseClient): Promise<number> {
   });
   const { ms } = await timed(async () => {
     await ch.command({
+      // mỗi rand() cần ARGUMENT khác nhau, nếu không ClickHouse gộp chung (common
+      // subexpression elimination) → mọi cột lấy cùng 1 số ngẫu nhiên → tương quan cứng.
       query: `INSERT INTO battle_logs
-        SELECT rand() % 10000 + 1            AS hero_id,
-               rand() % 300000 + 1           AS player_id,
-               (['NA','EU','ASIA','SA'])[rand() % 4 + 1] AS region,
-               rand() % 2                    AS win,
-               rand() % 180                  AS day,
-               rand() % 24                   AS hour
+        SELECT rand(1) % 10000 + 1           AS hero_id,
+               rand(2) % 300000 + 1          AS player_id,
+               (['NA','EU','ASIA','SA'])[rand(3) % 4 + 1] AS region,
+               rand(4) % 2                   AS win,
+               rand(5) % 180                 AS day,
+               rand(6) % 24                  AS hour
         FROM numbers(${N})`,
     });
   });
@@ -82,7 +85,7 @@ async function main(): Promise<void> {
   const pool = makePool(4);
   const ch = makeClickhouse();
   try {
-    title(`DEMO 4 — Analytics · ${N.toLocaleString()} battle_log rows · OLTP vs OLAP`);
+    title(`DEMO 5 — Analytics · ${N.toLocaleString()} battle_log rows · OLTP vs OLAP`);
 
     const pgSeed = await withSpinner(
       `PostgreSQL · seed ${(N / 1_000_000).toFixed(0)}M rows`,

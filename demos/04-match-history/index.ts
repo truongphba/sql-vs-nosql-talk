@@ -47,7 +47,7 @@ async function seedPg(pool: Pool): Promise<number> {
   const { ms: t } = await timed(() =>
     runConcurrentWithSpinner(N, WRITE_CONCURRENCY, (i) =>
       pool.query({ name: "ins_match", text, values: [1 + rnd(PLAYERS), eventTime(i), i, 1 + rnd(PLAYERS), RESULTS[rnd(2)], rnd(200) - 100] }),
-    , `PostgreSQL · ghi ${(N / 1000).toFixed(0)}K event`),
+      `PostgreSQL · ghi ${(N / 1000).toFixed(0)}K event`),
   );
   return t;
 }
@@ -62,7 +62,7 @@ async function seedScylla(client: Client): Promise<number> {
   const { ms: t } = await timed(() =>
     runConcurrentWithSpinner(N, WRITE_CONCURRENCY, (i) =>
       client.execute(insert, [1 + rnd(PLAYERS), eventTime(i), i, 1 + rnd(PLAYERS), RESULTS[rnd(2)], rnd(200) - 100], { prepare: true }),
-    , `ScyllaDB · ghi ${(N / 1000).toFixed(0)}K event`),
+      `ScyllaDB · ghi ${(N / 1000).toFixed(0)}K event`),
   );
   return t;
 }
@@ -135,7 +135,7 @@ async function main(): Promise<void> {
   await scylla.connect();
 
   try {
-    title(`DEMO 5 — Match history (wide-column) · ${(N / 1000).toFixed(0)}K event · ${PLAYERS} player`);
+    title(`DEMO 4 — Match history (wide-column) · ${(N / 1000).toFixed(0)}K event · ${PLAYERS} player`);
 
     if (mode === "seed" || mode === "all") {
       console.log(dim(`  Ghi ${(N / 1000).toFixed(0)}K event · concurrency=${WRITE_CONCURRENCY} (per-event insert, đã prepare)`));

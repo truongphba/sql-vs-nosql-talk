@@ -5,6 +5,7 @@ import { env } from "../../src/lib/env";
 import { ensurePgDatabase, makePoolForDb, pgDbs } from "../../src/db/pg";
 import { makeMongo } from "../../src/db/mongo";
 import { printTable, dim, title } from "../../src/lib/table";
+import { withSpinner } from "../../src/lib/progress";
 import { N, fmtScale, genSeed, seedNorm, seedJsonb, seedMongo, s, userN, whaleCount, avgHeroesPerWhale } from "./lib";
 
 async function main(): Promise<void> {
@@ -16,10 +17,10 @@ async function main(): Promise<void> {
   try {
     title(`DEMO 2 · SEED — ${fmtScale(N)} hero · ${whaleCount} whale · ~${avgHeroesPerWhale.toFixed(0)} hero/whale`);
     console.log(dim(`  ${userN.toLocaleString()} user · norm=${pgDbs.norm} · jsonb=${pgDbs.jsonb} · mongo=${env.mongoDb}\n`));
-    const seed = genSeed();
-    const insNorm = await seedNorm(poolNorm, seed);
-    const insJsonb = await seedJsonb(poolJsonb, seed);
-    const insMongo = await seedMongo(db, seed);
+    const seed = await withSpinner(`Generate seed · ${fmtScale(N)} hero`, async () => genSeed());
+    const insNorm = await withSpinner("Seed PostgreSQL normalized", () => seedNorm(poolNorm, seed), s);
+    const insJsonb = await withSpinner("Seed PostgreSQL JSONB", () => seedJsonb(poolJsonb, seed), s);
+    const insMongo = await withSpinner("Seed MongoDB", () => seedMongo(db, seed), s);
 
     printTable(
       ["OPERATION", "PG NORMALIZED", "PG JSONB", "MONGODB"],

@@ -4,6 +4,7 @@
 import { makePoolForDb, pgDbs } from "../../src/db/pg";
 import { makeMongo } from "../../src/db/mongo";
 import { printTable, dim, title, ok, bad } from "../../src/lib/table";
+import { withSpinner } from "../../src/lib/progress";
 import { assertSeededPg, migrateNorm, migrateJsonb, migrateMongo, type MigrateRow, type UnderLoad, LOADERS, s, ms } from "./lib";
 
 async function main(): Promise<void> {
@@ -14,9 +15,9 @@ async function main(): Promise<void> {
     title("DEMO 2 · LAYER 2 — Schema evolution (thêm field `trait`)");
     if (!(await assertSeededPg(poolNorm, "norm")) || !(await assertSeededPg(poolJsonb, "jsonb"))) return;
 
-    const norm = await migrateNorm(poolNorm);
-    const jsonb = await migrateJsonb(poolJsonb);
-    const mongo = await migrateMongo(db);
+    const norm = await withSpinner("PostgreSQL normalized migration (under load)", () => migrateNorm(poolNorm));
+    const jsonb = await withSpinner("PostgreSQL JSONB migration (under load)", () => migrateJsonb(poolJsonb));
+    const mongo = await withSpinner("MongoDB migration (under load)", () => migrateMongo(db));
 
     console.log("  Part A — đọc field `trait` trên data CŨ (chưa migrate):");
     const partA = (m: MigrateRow) =>

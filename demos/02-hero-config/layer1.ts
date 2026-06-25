@@ -4,6 +4,7 @@
 import { makePoolForDb, pgDbs } from "../../src/db/pg";
 import { makeMongo } from "../../src/db/mongo";
 import { printTable, dim, title } from "../../src/lib/table";
+import { withSpinner } from "../../src/lib/progress";
 import { assertSeededPg, readNorm, readJsonb, readMongo, ms } from "./lib";
 
 async function main(): Promise<void> {
@@ -14,9 +15,9 @@ async function main(): Promise<void> {
     title("DEMO 2 · LAYER 1 — Read patterns");
     if (!(await assertSeededPg(poolNorm, "norm")) || !(await assertSeededPg(poolJsonb, "jsonb"))) return;
 
-    const norm = await readNorm(poolNorm);
-    const jsonb = await readJsonb(poolJsonb);
-    const mongo = await readMongo(db);
+    const norm = await withSpinner("PostgreSQL normalized reads", () => readNorm(poolNorm));
+    const jsonb = await withSpinner("PostgreSQL JSONB reads", () => readJsonb(poolJsonb));
+    const mongo = await withSpinner("MongoDB reads", () => readMongo(db));
 
     printTable(
       ["OPERATION", "PG NORMALIZED", "PG JSONB", "MONGODB"],
