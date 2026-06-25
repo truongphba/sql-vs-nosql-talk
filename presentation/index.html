@@ -471,7 +471,7 @@
           <div class="lane lane--acid">
             <div class="role">POSTGRESQL · matches</div>
             <div class="struct-heap">
-              <div class="struct-label">HEAP · row lộn xộn</div>
+              <div class="struct-label">HEAP · UNSORTED ROWS</div>
               <div class="struct-rows">
                 <span class="srow">p=3 · t=09:01</span>
                 <span class="srow">p=1 · t=10:00</span>
@@ -620,6 +620,64 @@
             <tr class="hl"><td class="co">Chạy chung OLTP?</td><td class="reason" style="color:var(--redis)">tranh CPU/IO với game</td><td class="reason" style="color:var(--mongo)">engine riêng — không đụng</td></tr>
           </tbody>
         </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="slide-body">
+        <div class="eyebrow">STORAGE LAYOUT</div>
+        <h3 style="margin-bottom:0.4em">Cùng cột — khác cách data nằm trên disk</h3>
+        <div class="split struct-split">
+          <div class="lane lane--acid">
+            <div class="role">POSTGRESQL · row store (heap)</div>
+            <div class="struct-heap">
+              <div class="struct-label">1 ROW = ALL COLUMNS TOGETHER</div>
+              <div class="struct-rows">
+                <span class="srow">hero·player·region·win·day·hour</span>
+                <span class="srow">hero·player·region·win·day·hour</span>
+                <span class="srow hl">hero·player·region·win·day·hour</span>
+                <span class="srow">hero·player·region·win·day·hour</span>
+              </div>
+            </div>
+            <div class="struct-q struct-q--no fragment fade-up">SELECT region, count(*) → đọc <b>cả 6 cột</b> mọi hàng</div>
+            <div class="struct-q struct-q--no fragment fade-up">5M rows → <b>~249 MB</b> · không nén theo cột</div>
+          </div>
+          <div class="lane lane--click">
+            <div class="role">CLICKHOUSE · columnar (MergeTree)</div>
+            <div class="struct-parts">
+              <div class="struct-part">
+                <div class="struct-part-hd">region</div>
+                <div class="struct-part-rows">
+                  <span class="crow">NA</span>
+                  <span class="crow">EU</span>
+                  <span class="crow">NA</span>
+                </div>
+                <div class="struct-part-ft">nén 1.7x</div>
+              </div>
+              <div class="struct-part struct-part--hot">
+                <div class="struct-part-hd">day</div>
+                <div class="struct-part-rows">
+                  <span class="crow">0</span>
+                  <span class="crow">0</span>
+                  <span class="crow">0</span>
+                </div>
+                <div class="struct-part-ft">nén ~200x</div>
+              </div>
+              <div class="struct-part struct-part--dim">
+                <div class="struct-part-hd">player_id</div>
+                <div class="struct-part-rows">
+                  <span class="crow dim">37413</span>
+                  <span class="crow dim">90001</span>
+                  <span class="crow dim">8821</span>
+                </div>
+                <div class="struct-part-ft">nén 1x</div>
+              </div>
+            </div>
+            <div class="struct-q struct-q--ok fragment fade-up">SELECT region, count(*) → đọc <b>đúng 1 cột</b>, bỏ qua 5 cột</div>
+            <div class="struct-q struct-q--ok fragment fade-up">5M rows → <b>~43 MiB</b> · sparse index (1 mark/8192 row)</div>
+          </div>
+        </div>
+        <div class="note">DATAGRIP NHIN GIONG · DISK KHAC: ROW HEAP VS COLUMN FILES + NEN THEO COT</div>
       </div>
     </section>
 

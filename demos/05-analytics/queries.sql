@@ -33,11 +33,46 @@ SELECT region, hour, count() AS battles FROM battle_logs GROUP BY region, hour O
 -- EXPLAIN PIPELINE SELECT region, count() FROM battle_logs GROUP BY region;
 
 
+-- ────────────────────────────────────────────────────────────────────────────
+-- CẤU TRÚC VẬT LÝ — nhìn ra "columnar" (DataGrip view hàng×cột nhìn giống PG,
+-- khác biệt nằm ở storage). Chạy mấy query system.* này cho khán giả thấy tận mắt.
+-- ────────────────────────────────────────────────────────────────────────────
+
+-- (A) NÉN TỪNG CỘT — chữ ký rõ nhất của columnar: mỗi cột 1 file, nén riêng.
+--     `day` nén ~200x (vì ORDER BY (day,hero_id) → day sắp xếp → lặp liền → nén sạch);
+--     `player_id` ~1x (random int, không nén được). Row store KHÔNG làm được kiểu này.
+SELECT name AS column,
+       formatReadableSize(sum(data_compressed_bytes))   AS compressed,
+       formatReadableSize(sum(data_uncompressed_bytes)) AS uncompressed,
+       round(sum(data_uncompressed_bytes) / sum(data_compressed_bytes), 1) AS ratio
+FROM system.columns
+WHERE table = 'battle_logs' AND database = currentDatabase()
+GROUP BY name ORDER BY sum(data_compressed_bytes) DESC;
+
+-- (B) MergeTree PARTS + SPARSE INDEX — không index từng row:
+--     `marks` = số granule (1 mark / 8192 row); `primary_key_bytes_in_memory` chỉ vài trăm byte
+--     cho cả triệu row. Nhiều part = ghi thành part bất biến rồi merge nền (LSM-style).
+SELECT part_type, rows, marks,
+       formatReadableSize(data_compressed_bytes)        AS compressed,
+       formatReadableSize(primary_key_bytes_in_memory)  AS pk_in_mem
+FROM system.parts WHERE table = 'battle_logs' AND active;
+-- OPTIMIZE TABLE battle_logs FINAL;   -- gộp hết part lại 1 part (demo merge)
+
+-- (C) index_granularity = 8192 (mặc định): xem trong DDL.
+SHOW CREATE TABLE battle_logs;
+
+
 -- ╔════════════════════════════════════════════════════════════════════════╗
 -- ║ [PG] PostgreSQL (row store) — CÙNG query, đổi sang data source Postgres  ║
 -- ╚════════════════════════════════════════════════════════════════════════╝
 
 SELECT pg_size_pretty(pg_total_relation_size('battle_logs')) AS on_disk, count(*) AS rows FROM battle_logs;
+--   So với ClickHouse ~43 MiB → PG ~249 MB (~6x): row heap không nén theo cột.
+--   PG KHÔNG có khái niệm "dung lượng/nén theo cột" — cả hàng nằm chung trong heap page,
+--   nên không có query nào liệt kê compressed-bytes-per-column như system.columns của ClickHouse.
+--   Muốn nhìn tận byte layout của 1 page (whole-row store):
+--     CREATE EXTENSION IF NOT EXISTS pageinspect;
+--     SELECT lp, t_ctid, t_data FROM heap_page_items(get_raw_page('battle_logs', 0)) LIMIT 5;
 
 -- 1) Hero win rate — win là boolean ở PG
 EXPLAIN (ANALYZE, BUFFERS)

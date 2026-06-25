@@ -16,7 +16,7 @@ npm run demo:5   # 5M battle_logs · 3 aggregate · Postgres vs ClickHouse
 | 2:00–3:00 | KY VONG "ClickHouse nhanh hơn ~10-40x" | "Lần này trực giác **đúng** — nhưng tôi sẽ cho thấy tốc độ KHÔNG phải bài học." |
 | 3:00–6:00 RUN | `npm run demo:5` | "ClickHouse ~10-46x. `count(distinct)` ở DAU chênh nhất (~46x, quét 1 cột thay vì cả hàng). Confirmed. ... Giờ là phần quan trọng." |
 | 6:00–9:30 PIVOT ⭐ | Chỉ dòng cuối `Chạy chung OLTP?` | "Không phải 'ClickHouse nhanh hơn'. Mà: chạy aggregate này **trên Postgres** = tranh CPU/IO/buffer cache với transaction người chơi → game lag đúng giờ peak. Tách engine → analytics không đụng production." |
-| *(tuỳ chọn)* | DataGrip → ClickHouse | `SELECT * LIMIT`, dung lượng nén columnar, `EXPLAIN PIPELINE`. Cho thấy "data ở engine riêng". |
+| *(tuỳ chọn)* ⭐ | DataGrip → ClickHouse · **lộ columnar** | "DataGrip xem hàng×cột nhìn **giống hệt** Postgres — khác biệt ở storage." Chạy `system.columns`: cột `day` nén **~200x** (sắp xếp theo ORDER BY) vs `player_id` ~1x (random). `system.parts`: 1.1M row chỉ **137 marks**, PK in-mem **~800 byte** (sparse index, không index từng row). Tổng đĩa **~43 MiB vs PG ~249 MB**. Query sẵn ở queries.sql mục (A)(B)(C). |
 | 9:30–12:00 | Slide điều kiện | "'Không đụng OLTP' chỉ đúng khi data **đã** ở layer riêng: Parquet export / CDC / read-replica. Và **khâu sync cũng tốn** — off-peak / replica." |
 | 12:00–13:30 | Takeaway | "Câu hỏi không phải query *chạy được không* — mà *có nên* để analytics trên OLTP không. Tách = quyết định **kiến trúc**." |
 

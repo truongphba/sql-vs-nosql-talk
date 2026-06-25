@@ -301,6 +301,7 @@
 .lane--acid { border-top: 8px solid var(--pg); }
 .lane--rt   { border-top: 8px solid var(--redis); }
 .lane--scylla { border-top: 8px solid var(--scylla); }
+.lane--click  { border-top: 8px solid var(--click); }
 
 /* scale-out diagram — Demo 4 (diagram only, không chạy multi-node local) */
 .scale-split { align-items: stretch; }
@@ -380,6 +381,11 @@
   display: flex; flex-direction: column; gap: 4px;
 }
 .struct-part--dim { opacity: 0.55; }
+/* columnar (Demo 5) — mỗi struct-part = 1 cột file; tô màu ClickHouse, không đụng Scylla */
+.lane--click .struct-part { border-top-color: var(--click); }
+.lane--click .struct-part-hd { color: var(--click); }
+.struct-part--hot { box-shadow: 0 0 0 2px var(--click) inset; }
+.struct-part--hot .struct-part-ft { color: var(--click); font-weight: 700; }
 .struct-part-hd {
   font-family: var(--font-mono); font-size: 12px; color: var(--scylla);
   padding-bottom: 4px; border-bottom: 1px dashed var(--line);
