@@ -84,7 +84,7 @@ Hướng **Pixel / Game (disciplined)**. Token gốc nằm ở đầu `presentat
 ## Trạng thái hiện tại
 
 - [x] Kịch bản — bản nháp đầy đủ, đang tinh chỉnh (Phase 1 đã viết lại theo hướng "câu hỏi sai" + có timing chi tiết).
-- [x] Slide reveal.js — **toàn bộ buổi xong** (`presentation/`: 46 slide). Benchmark Demo 1–5 dùng cơ chế **"Đo, đừng đoán"**: slide chỉ ghi **KY VONG** (banner myth + bảng số dự đoán, đều là kỳ vọng) — **KHÔNG pre-bake số thật, KHÔNG verdict-box**. Số thật chạy **live ở terminal** rồi đối chiếu với kỳ vọng trên slide (confirm/bust diễn ra bằng lời lúc đứng nói). Spine gài ở Hook (thesis) + slide payoff "Đo, đừng đoán" trước Closing (phần lớn demo khác trực giác).
+- [x] Slide reveal.js — **toàn bộ buổi xong** (`presentation/`: 48 slide). Benchmark Demo 1–5 dùng cơ chế **"Đo, đừng đoán"**: slide chỉ ghi **KY VONG** (banner myth + bảng số dự đoán, đều là kỳ vọng) — **KHÔNG pre-bake số thật, KHÔNG verdict-box**. Số thật chạy **live ở terminal** rồi đối chiếu với kỳ vọng trên slide (confirm/bust diễn ra bằng lời lúc đứng nói). Spine gài ở Hook (thesis) + slide payoff "Đo, đừng đoán" trước Closing (phần lớn demo khác trực giác).
 - [x] Demo code — **Demo 1–5 chạy thật** (`docker-compose` + `demos/0X`, tsx). `npm run db:up` rồi `npm run demo:1..5`. Demo 4 dùng ScyllaDB (wide-column) — container nặng, khởi động chậm. Tất cả demo dài đã có **spinner/progress** qua `src/lib/progress.ts`.
   - Narrative benchmark đã chỉnh trung thực: Demo 1 (naive chậm nhất vì row lock + nhiều UPDATE thừa), Demo 3 (**cùng INSERT battle** — so `PG battle + UPSERT LB` vs `PG battle + Redis LB`; idle read gần nhau, spike + throughput lộ lợi tách display), Demo 2 Layer 2 (migration dưới OLTP load).
 

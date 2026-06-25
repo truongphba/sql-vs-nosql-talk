@@ -74,7 +74,7 @@ Demo phục vụ trình bày live nên cần:
 Trạng thái hiện tại:
 
 - Kịch bản đã có bản nháp đầy đủ, đang tinh chỉnh.
-- Slide reveal.js đã xong toàn bộ deck trong `presentation/` với 46 slide. Cơ chế **"Đo, đừng đoán"**: slide benchmark chỉ ghi **KY VONG** (banner myth + bảng số dự đoán, đều là kỳ vọng) — **KHÔNG pre-bake số thật, KHÔNG verdict-box**. Số thật chạy **live ở terminal** rồi đối chiếu với kỳ vọng trên slide; confirm/bust nói bằng lời.
+- Slide reveal.js đã xong toàn bộ deck trong `presentation/` với 48 slide. Cơ chế **"Đo, đừng đoán"**: slide benchmark chỉ ghi **KY VONG** (banner myth + bảng số dự đoán, đều là kỳ vọng) — **KHÔNG pre-bake số thật, KHÔNG verdict-box**. Số thật chạy **live ở terminal** rồi đối chiếu với kỳ vọng trên slide; confirm/bust nói bằng lời.
 - Demo 1–5 đã có code chạy thật qua `npm run db:up` rồi `npm run demo:1..5`. Demo 1, 2, 4 tách script nhỏ để demo live (`demo:1:naive|for-update|redis|all`; `demo:2:seed|layer1|layer2|lock`; `demo:4:seed|read|contract`); có `queries.sql`/`.cql` mỗi demo để chạy tay trên DataGrip. Demo 4 dùng ScyllaDB (wide-column) — container nặng, khởi động chậm.
 - Narrative benchmark đã chỉnh trung thực: Demo 1 — naive **chậm nhất** (row lock + nhiều UPDATE thừa). Demo 2 Layer 2 — migration dưới tải OLTP. **Demo 3** — so sánh **công bằng** (`INSERT battle` cả hai cột): `PG battle + UPSERT LB` vs `PG battle + Redis LB`; param `60K` trận, `40` spike readers, `POOL_MAX=40`; điểm bán = throughput + tách display, không myth "đọc 200x".
 

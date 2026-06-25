@@ -1,6 +1,6 @@
 # Presentation — SQL vs NoSQL DB Talk
 
-Slide deck (reveal.js, no-build) cho buổi *SQL vs NoSQL*. **Đầy đủ toàn buổi — 46 slide**: Hook → Case study → DB landscape → Demo 1–5 → Pitfalls → Decision Framework → Q&A → Closing.
+Slide deck (reveal.js, no-build) cho buổi *SQL vs NoSQL*. **Đầy đủ toàn buổi — 48 slide**: Hook → Case study → DB landscape → Demo 1–5 → Pitfalls → Decision Framework → Q&A → Closing.
 
 > Slide benchmark chỉ ghi **KY VONG** (kỳ vọng): banner myth + bảng số dự đoán, **không** có số thật/verdict. Số thật chạy **live ở terminal** (`npm run demo:N`) rồi đối chiếu với kỳ vọng — confirm/bust nói bằng lời.
 
