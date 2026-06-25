@@ -59,7 +59,7 @@ Khoảng lặng 10–15 giây để mọi người đoán lý do. Sau đó revea
 
 > "Ngay trong Instagram cũng không có một đáp án. Post, comment, like, follow là dữ liệu quan hệ chặt — PostgreSQL hợp lý làm source of truth. Nhưng Home Feed lại là workload khác: mở app phải thấy feed ngay, cần ranking và feed cache kiểu Redis, không thể mỗi lần mở app lại JOIN live toàn bộ follow graph. Vậy câu hỏi không phải 'Instagram dùng DB nào', mà là 'phần nào của Instagram cần gì'."
 
-→ Phá tư duy "chọn 1 DB cho cả hệ thống" — đây chính là cái mở đường cho 4 demo, mỗi demo một layer.
+→ Phá tư duy "chọn 1 DB cho cả hệ thống" — đây chính là cái mở đường cho 5 demo, mỗi demo một layer.
 
 ### Bước 4 — Chuyển sang case study (3:45–5:00)
 
@@ -108,7 +108,7 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 
 ## Phase 3 — Khung lý thuyết (7–9 phút)
 
-> Trước khi vào demo, nhìn nhanh tấm bản đồ DB để biết mình đang đứng ở đâu — rồi mới zoom vào 4 cái sẽ test hôm nay (lướt nhanh, không đọc từng dòng).
+> Trước khi vào demo, nhìn nhanh tấm bản đồ DB để biết mình đang đứng ở đâu — rồi mới zoom vào 5 cái sẽ test hôm nay (lướt nhanh, không đọc từng dòng).
 
 ### Họ nhà SQL (Relational) — điểm chung: ACID + ngôn ngữ SQL
 
@@ -136,9 +136,9 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 
 **Ranh giới SQL/NoSQL đang mờ dần.** PostgreSQL nuốt dần nhiều loại: JSONB (document), pgvector (vector), TimescaleDB (time-series), PostGIS (geo). Nhiều khi không cần thêm DB mới — chỉ cần một extension. (Chính là lý do JSONB sẽ xuất hiện ở Demo 2.)
 
-### 4 đại diện sẽ benchmark hôm nay
+### 5 đại diện sẽ benchmark hôm nay
 
-> Từ cả bản đồ trên, đây là 4 cái ta sẽ chạy demo thật hôm nay — mỗi cái đại diện cho một workload chính của game.
+> Từ cả bản đồ trên, đây là 5 cái ta sẽ chạy demo thật hôm nay — mỗi cái đại diện cho một workload chính của game.
 
 | DB | Họ | Vai trò |
 |---|---|---|
@@ -148,7 +148,7 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 | **ScyllaDB** | Wide-column | Write-heavy append, partition read, scale-out (Demo 4) |
 | **ClickHouse** | OLAP Columnar | Aggregate scan, analytics, columnar server (Demo 5) |
 
-> Buổi này không cover hết — Wide-column, Graph, Search… sẽ được nhắc khi liên quan.
+> Buổi này không cover hết — Graph, Search, Time-series, Vector… sẽ được nhắc khi liên quan.
 
 ### Chuẩn bị môi trường demo (Docker)
 
@@ -170,7 +170,7 @@ Mỗi tính năng sinh ra một loại workload khác nhau, và chính là cái 
 
 ```bash
 npm run db:up      # đầu buổi
-npm run demo:1..4  # chạy liên tiếp, không cần restart Docker
+npm run demo:1..5  # chạy liên tiếp, không cần restart Docker
 npm run db:size    # sau Demo 2 — xem dung lượng DB (optional live)
 npm run db:down    # cuối buổi / dọn sạch
 ```
@@ -863,7 +863,7 @@ Nguyên tắc vẫn vậy: thêm khi workload thật xuất hiện, không phả
 
 > Takeaway quan trọng nhất không phải biết thêm mấy loại DB — mà là biết đặt câu hỏi đúng trước khi chọn: **đây là truth, read model, coordination, hay analytics?** Câu trả lời đó sẽ chỉ ra DB phù hợp.
 >
-> Và: **đo, đừng đoán.** Hôm nay 3/4 demo cho kết quả khác trực giác — FOR UPDATE không phải chậm nhất, JSONB đủ thay MongoDB, Redis thắng ở write throughput chứ không phải đọc. Đừng tin benchmark trên máy người khác; đo trên hệ của bạn.
+> Và: **đo, đừng đoán.** Hôm nay phần lớn demo cho kết quả khác trực giác — FOR UPDATE không chậm, JSONB cân cả đọc xuôi lẫn JOIN, Redis thắng *write* chứ không phải đọc, Scylla nhanh *write* nhưng đọc ngang PG và từ chối ad-hoc. Đừng tin benchmark trên máy người khác; đo trên hệ của bạn.
 
 ---
 
